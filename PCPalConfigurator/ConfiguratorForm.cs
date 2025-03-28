@@ -37,7 +37,7 @@ namespace PCPalConfigurator
 
         private static string GetConfigPath()
         {
-            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ESP32Display");
+            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PCPal");
             Directory.CreateDirectory(folder);
             return Path.Combine(folder, "config.json");
         }

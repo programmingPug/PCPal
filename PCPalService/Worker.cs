@@ -38,31 +38,52 @@ namespace PCPalService
         {
             Log("ESP32 Background Service Starting...");
 
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                string portName = AutoDetectESP32();
-                if (portName == null)
+                try
                 {
-                    Log("ESP32-C3 not found. Service stopping...");
-                    throw new Exception("ESP32 not detected.");
+                    if (!File.Exists(ConfigFile))
+                    {
+                        Log("Config file not found. Retrying in 5 seconds...");
+                        await Task.Delay(5000, stoppingToken);
+                        continue;
+                    }
+
+                    var config = LoadConfig();
+                    if (serialPort == null || !serialPort.IsOpen)
+                    {
+                        string portName = AutoDetectESP32();
+                        if (portName != null)
+                        {
+                            serialPort = new SerialPort(portName, 115200);
+                            serialPort.Open();
+                            Log($"Connected to ESP32-C3 on {portName}");
+                        }
+                        else
+                        {
+                            Log("ESP32-C3 not found. Retrying in 5 seconds...");
+                            await Task.Delay(5000, stoppingToken);
+                            continue;
+                        }
+                    }
+
+                    string line1 = GetLCDContent(config.Line1Selection, config.Line1CustomText, config.Line1PostText);
+                    string line2 = GetLCDContent(config.Line2Selection, config.Line2CustomText, config.Line2PostText);
+
+                    SendCommand($"CMD:LCD,0,{line1}");
+                    SendCommand($"CMD:LCD,1,{line2}");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Error in service loop: {ex.Message}");
                 }
 
-                serialPort = new SerialPort(portName, 115200);
-                serialPort.Open();
-                Log($"Connected to ESP32-C3 on {portName}");
+                await Task.Delay(5000, stoppingToken);
+            }
 
-                while (!stoppingToken.IsCancellationRequested)
-                {
-                    UpdateLCD();
-                    await Task.Delay(5000, stoppingToken);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log($"Fatal Error: {ex.Message}");
-                Environment.Exit(1); // Force exit, triggering restart
-            }
+            serialPort?.Close();
         }
+
 
         private string AutoDetectESP32()
         {
