@@ -1,0 +1,10 @@
+{
+  "LastUsedPort": null,
+  "ScreenType": null,
+  "Line1Selection": "Cpu: CPU Total (Load)",
+  "Line1CustomText": "CPU ",
+  "Line2Selection": "Memory: Memory Used (Data)",
+  "Line2CustomText": "Memory ",
+  "Line1PostText": "%",
+  "Line2PostText": "GB"
+}
