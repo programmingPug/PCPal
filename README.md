@@ -120,15 +120,6 @@ sc delete ESP32BackgroundService
 
 ---
 
-## 📸 Screenshots
-
-> Replace the image paths with real screenshots when available.
-
-- `docs/images/banner.jpg` – project header
-- `docs/images/1602.png` – 1602 LCD config tab
-
----
-
 ## 📄 License
 
 MIT License  
