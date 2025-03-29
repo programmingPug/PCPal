@@ -1,7 +1,10 @@
 using PCPalService;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
+using Microsoft.Extensions.Hosting.WindowsServices;
+
 
 namespace PCPalService
 {
@@ -13,10 +16,11 @@ namespace PCPalService
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureServices((hostContext, services) =>
-                {
-                    services.AddHostedService<Worker>();
-                });
+          Host.CreateDefaultBuilder(args)
+              .UseWindowsService()
+              .ConfigureServices((hostContext, services) =>
+              {
+                  services.AddHostedService<Worker>();
+              });
     }
 }

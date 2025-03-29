@@ -1,21 +1,21 @@
 # Define the service name and path to the published service
-$ServiceName = "ESP32BackgroundService"
-$ServiceExePath = "$PSScriptRoot\ESP32BackgroundService.exe"
+$ServiceName = "PCPalService"
+$ServiceExePath = "$PSScriptRoot\PCPalService\bin\Release\net8.0\publish\win-x64\PCPalService.exe"
 
 # Function to check if the service exists
 function ServiceExists {
     return Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
 }
 
-# Install the service
 function Install-Service {
     if (ServiceExists) {
         Write-Host "Service '$ServiceName' already exists."
         return
     }
     Write-Host "Installing service '$ServiceName'..."
-    sc.exe create $ServiceName binPath= "`"$ServiceExePath`"" start= auto
+    sc.exe create $ServiceName binPath= "`"$ServiceExePath`"" start= auto obj= "LocalSystem"
     sc.exe failure $ServiceName reset= 0 actions= restart/5000
+    sc.exe description $ServiceName "PCPal Background Monitoring Service"
     Start-Service -Name $ServiceName
     Write-Host "Service installed and started successfully with auto-restart enabled."
 }

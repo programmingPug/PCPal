@@ -1,14 +1,13 @@
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.IO.Ports;
-using System.ServiceProcess;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using LibreHardwareMonitor.Hardware;
 using Newtonsoft.Json;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using LibreHardwareMonitor.Hardware;
 
 namespace PCPalService
 {
@@ -17,124 +16,129 @@ namespace PCPalService
         private readonly ILogger<Worker> _logger;
         private SerialPort serialPort;
         private Computer computer;
-        private readonly string ConfigFile = GetConfigPath();
-        private const string LogFile = "service_log.txt";
+
+        private const string AppDataFolder = "PCPal";
+        private const string ConfigFileName = "config.json";
 
         public Worker(ILogger<Worker> logger)
         {
             _logger = logger;
-            computer = new Computer { IsCpuEnabled = true, IsMemoryEnabled = true };
-            computer.Open();
-        }
-
-        private static string GetConfigPath()
-        {
-            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PCPal");
-            Directory.CreateDirectory(folder); // Ensure folder exists
-            return Path.Combine(folder, "config.json");
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Log("ESP32 Background Service Starting...");
+            _logger.LogInformation("Service starting...");
+            computer = new Computer
+            {
+                IsCpuEnabled = true,
+                IsMemoryEnabled = true,
+                IsGpuEnabled = true,
+                IsMotherboardEnabled = true
+            };
+            computer.Open();
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    if (!File.Exists(ConfigFile))
+                    string configPath = GetConfigPath();
+                    if (!File.Exists(configPath))
                     {
-                        Log("Config file not found. Retrying in 5 seconds...");
+                        _logger.LogWarning("Config file not found. Retrying in 5 seconds...");
                         await Task.Delay(5000, stoppingToken);
                         continue;
                     }
 
-                    var config = LoadConfig();
+                    var config = LoadConfig(configPath);
+
                     if (serialPort == null || !serialPort.IsOpen)
                     {
-                        string portName = AutoDetectESP32();
-                        if (portName != null)
+                        string port = AutoDetectESP32();
+                        if (port != null)
                         {
-                            serialPort = new SerialPort(portName, 115200);
+                            serialPort = new SerialPort(port, 115200);
                             serialPort.Open();
-                            Log($"Connected to ESP32-C3 on {portName}");
+                            _logger.LogInformation($"Connected to ESP32 on {port}");
                         }
                         else
                         {
-                            Log("ESP32-C3 not found. Retrying in 5 seconds...");
+                            _logger.LogWarning("ESP32 not found. Retrying in 5 seconds...");
                             await Task.Delay(5000, stoppingToken);
                             continue;
                         }
                     }
 
-                    string line1 = GetLCDContent(config.Line1Selection, config.Line1CustomText, config.Line1PostText);
-                    string line2 = GetLCDContent(config.Line2Selection, config.Line2CustomText, config.Line2PostText);
+                    string line1 = GetSensorLine(config.Line1Selection, config.Line1CustomText, config.Line1PostText);
+                    string line2 = GetSensorLine(config.Line2Selection, config.Line2CustomText, config.Line2PostText);
 
-                    SendCommand($"CMD:LCD,0,{line1}");
-                    SendCommand($"CMD:LCD,1,{line2}");
+                    serialPort.WriteLine($"CMD:LCD,0,{line1}");
+                    serialPort.WriteLine($"CMD:LCD,1,{line2}");
+                    _logger.LogInformation("Data sent to LCD.");
+
+                    await Task.Delay(5000, stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    Log($"Error in service loop: {ex.Message}");
+                    _logger.LogError(ex, "Error in main loop");
+                    await Task.Delay(5000, stoppingToken);
                 }
-
-                await Task.Delay(5000, stoppingToken);
             }
 
             serialPort?.Close();
         }
 
+        private string GetConfigPath()
+        {
+            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), AppDataFolder);
+            Directory.CreateDirectory(folder);
+            return Path.Combine(folder, ConfigFileName);
+        }
+
+        private ConfigData LoadConfig(string path)
+        {
+            string json = File.ReadAllText(path);
+            return JsonConvert.DeserializeObject<ConfigData>(json) ?? new ConfigData();
+        }
 
         private string AutoDetectESP32()
         {
             foreach (string port in SerialPort.GetPortNames())
             {
-                if (IsESP32Device(port)) return port;
+                try
+                {
+                    using (SerialPort test = new SerialPort(port, 115200))
+                    {
+                        test.Open();
+                        test.WriteLine("CMD:GET_LCD_TYPE");
+                        Thread.Sleep(500);
+                        string response = test.ReadExisting();
+                        if (response.Contains("LCD_TYPE:1602A"))
+                            return port;
+                    }
+                }
+                catch { }
             }
             return null;
         }
 
-        private bool IsESP32Device(string portName)
+        private string GetSensorLine(string selection, string prefix, string suffix)
         {
-            try
-            {
-                using (SerialPort testPort = new SerialPort(portName, 115200))
-                {
-                    testPort.Open();
-                    testPort.WriteLine("CMD:GET_LCD_TYPE");
-                    Thread.Sleep(500);
-                    string response = testPort.ReadExisting();
-                    testPort.Close();
-                    return response.Contains("LCD_TYPE:1602A");
-                }
-            }
-            catch { return false; }
-        }
+            if (selection == "Custom Text")
+                return prefix;
 
-        private void UpdateLCD()
-        {
-            ConfigData config = LoadConfig();
-            string line1 = GetLCDContent(config.Line1Selection, config.Line1CustomText, config.Line1PostText);
-            string line2 = GetLCDContent(config.Line2Selection, config.Line2CustomText, config.Line2PostText);
-
-
-            SendCommand($"CMD:LCD,0,{line1}");
-            SendCommand($"CMD:LCD,1,{line2}");
-        }
-
-        private string GetLCDContent(string selection, string prefix, string postfix)
-        {
             var parsed = ParseSensorSelection(selection);
             if (parsed == null)
                 return "N/A";
 
             string value = GetSensorValue(parsed.Value.hardwareType, parsed.Value.sensorName, parsed.Value.sensorType);
-            return $"{prefix}{value}{postfix}";
+            return $"{prefix}{value}{suffix}";
         }
-
 
         private (HardwareType hardwareType, string sensorName, SensorType sensorType)? ParseSensorSelection(string input)
         {
+            if (string.IsNullOrWhiteSpace(input))
+                return null;
+
             try
             {
                 var parts = input.Split(':', 2);
@@ -142,7 +146,6 @@ namespace PCPalService
 
                 var hardwareType = Enum.Parse<HardwareType>(parts[0].Trim());
                 var sensorInfo = parts[1].Trim();
-
                 int idx = sensorInfo.LastIndexOf('(');
                 if (idx == -1) return null;
 
@@ -157,14 +160,15 @@ namespace PCPalService
                 return null;
             }
         }
+
         private string GetSensorValue(HardwareType type, string name, SensorType sensorType)
         {
-            foreach (IHardware hardware in computer.Hardware)
+            foreach (var hardware in computer.Hardware)
             {
                 if (hardware.HardwareType == type)
                 {
                     hardware.Update();
-                    foreach (ISensor sensor in hardware.Sensors)
+                    foreach (var sensor in hardware.Sensors)
                     {
                         if (sensor.SensorType == sensorType && sensor.Name == name)
                         {
@@ -175,39 +179,16 @@ namespace PCPalService
             }
             return "N/A";
         }
-
-        private ConfigData LoadConfig()
-        {
-            if (File.Exists(ConfigFile))
-            {
-                string json = File.ReadAllText(ConfigFile);
-                return JsonConvert.DeserializeObject<ConfigData>(json) ?? new ConfigData();
-            }
-            return new ConfigData();
-        }
-
-        private void SendCommand(string command)
-        {
-            serialPort.WriteLine(command);
-            Log($"Sent: {command}");
-        }
-
-        private void Log(string message)
-        {
-            string logEntry = $"{DateTime.Now}: {message}";
-            File.AppendAllText(LogFile, logEntry + Environment.NewLine);
-            _logger.LogInformation(message);
-        }
     }
 
-    class ConfigData
+    public class ConfigData
     {
         public string Line1Selection { get; set; }
         public string Line1CustomText { get; set; }
+        public string Line1PostText { get; set; }
         public string Line2Selection { get; set; }
         public string Line2CustomText { get; set; }
-        public string Line1PostText { get; set; }
         public string Line2PostText { get; set; }
-
+        public string ScreenType { get; set; }
     }
 }
