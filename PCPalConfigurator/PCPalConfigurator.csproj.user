@@ -4,5 +4,8 @@
     <Compile Update="ConfiguratorForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="IconBrowser\IconBrowser.cs">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
 </Project>
