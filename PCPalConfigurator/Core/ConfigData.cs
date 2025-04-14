@@ -1,5 +1,8 @@
-﻿namespace PCPalConfigurator
+﻿namespace PCPalConfigurator.Core
 {
+    /// <summary>
+    /// Stores configuration data for PCPal displays
+    /// </summary>
     public class ConfigData
     {
         // Common settings

@@ -4,8 +4,11 @@ using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
-namespace PCPalConfigurator
+namespace PCPalConfigurator.UI
 {
+    /// <summary>
+    /// Dialog for browsing and selecting icons
+    /// </summary>
     public partial class IconBrowser : Form
     {
         private string _selectedIconPath = "";

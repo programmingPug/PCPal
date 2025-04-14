@@ -1,4 +1,7 @@
-﻿namespace PCPalConfigurator
+﻿using System.Windows.Forms;
+using System.Drawing;
+
+namespace PCPalConfigurator.UI
 {
     partial class IconBrowser
     {
