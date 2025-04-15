@@ -4,8 +4,8 @@ using PCPal.Configurator.Views.OLED;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Text.RegularExpressions;
-//using Javax.Xml.Transform;
 using System.Diagnostics;
+//using Javax.Xml.Transform;
 
 namespace PCPal.Configurator.ViewModels;
 
@@ -49,6 +49,7 @@ public class OledConfigViewModel : BaseViewModel
 
     // Timer for sensor updates
     private Timer _sensorUpdateTimer;
+    private CancellationTokenSource _sensorUpdateCts;
 
     #region Properties
 
@@ -410,9 +411,9 @@ public class OledConfigViewModel : BaseViewModel
         IConfigurationService configService,
         ISerialPortService serialPortService)
     {
-        _sensorService = sensorService;
-        _configService = configService;
-        _serialPortService = serialPortService;
+        _sensorService = sensorService ?? throw new ArgumentNullException(nameof(sensorService));
+        _configService = configService ?? throw new ArgumentNullException(nameof(configService));
+        _serialPortService = serialPortService ?? throw new ArgumentNullException(nameof(serialPortService));
 
         // Initialize collections
         _oledElements = new ObservableCollection<OledElement>();
@@ -421,6 +422,9 @@ public class OledConfigViewModel : BaseViewModel
         _filteredSensors = new ObservableCollection<SensorItem>();
         _templateList = new ObservableCollection<Template>();
         _customTemplates = new ObservableCollection<Template>();
+
+        // Setup cancellation token source
+        _sensorUpdateCts = new CancellationTokenSource();
 
         // Create views
         _visualEditorView = new OledVisualEditorView { BindingContext = this };
@@ -468,6 +472,25 @@ public class OledConfigViewModel : BaseViewModel
         _sensorUpdateTimer = new Timer(async (_) => await UpdateSensorDataAsync(), null, Timeout.Infinite, Timeout.Infinite);
     }
 
+    ~OledConfigViewModel()
+    {
+        CleanupResources();
+    }
+
+    private void CleanupResources()
+    {
+        try
+        {
+            _sensorUpdateCts?.Cancel();
+            _sensorUpdateTimer?.Dispose();
+            _sensorUpdateCts?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error cleaning up resources: {ex.Message}");
+        }
+    }
+
     public async Task Initialize()
     {
         IsBusy = true;
@@ -492,6 +515,7 @@ public class OledConfigViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
+            Debug.WriteLine($"Error initializing: {ex.Message}");
             await Shell.Current.DisplayAlert("Error", $"Failed to initialize: {ex.Message}", "OK");
         }
         finally
@@ -502,103 +526,128 @@ public class OledConfigViewModel : BaseViewModel
 
     private async Task LoadSensorsAsync()
     {
-        await _sensorService.UpdateSensorValuesAsync();
-
-        var sensorGroups = _sensorService.GetAllSensorsGrouped();
-        var sensors = new List<SensorItem>();
-
-        foreach (var group in sensorGroups)
+        try
         {
-            foreach (var sensor in group.Sensors)
-            {
-                sensors.Add(sensor);
-            }
-        }
+            await _sensorService.UpdateSensorValuesAsync();
 
-        AvailableSensors = new ObservableCollection<SensorItem>(sensors);
-        FilteredSensors = new ObservableCollection<SensorItem>(sensors);
+            var sensorGroups = _sensorService.GetAllSensorsGrouped();
+            var sensors = new List<SensorItem>();
+
+            foreach (var group in sensorGroups)
+            {
+                foreach (var sensor in group.Sensors)
+                {
+                    sensors.Add(sensor);
+                }
+            }
+
+            // Update on main thread to ensure thread safety
+            await MainThread.InvokeOnMainThreadAsync(() => {
+                AvailableSensors = new ObservableCollection<SensorItem>(sensors);
+                FilteredSensors = new ObservableCollection<SensorItem>(sensors);
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading sensors: {ex.Message}");
+        }
     }
 
     private async Task LoadConfigAsync()
     {
-        var config = await _configService.LoadConfigAsync();
+        try
+        {
+            var config = await _configService.LoadConfigAsync();
 
-        // If OLED markup exists, load it
-        if (!string.IsNullOrEmpty(config.OledMarkup))
-        {
-            OledMarkup = config.OledMarkup;
-            await ParseMarkupToElementsAsync(OledMarkup);
-            UpdatePreviewFromMarkup();
+            // If OLED markup exists, load it
+            if (!string.IsNullOrEmpty(config.OledMarkup))
+            {
+                OledMarkup = config.OledMarkup;
+                await ParseMarkupToElementsAsync(OledMarkup);
+                UpdatePreviewFromMarkup();
+            }
+            else
+            {
+                // Load an example if no config exists
+                await LoadExampleMarkupAsync();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            // Load an example if no config exists
-            await LoadExampleMarkupAsync();
+            Debug.WriteLine($"Error loading configuration: {ex.Message}");
+            await LoadExampleMarkupAsync(); // Fallback to example
         }
     }
 
     private async Task LoadTemplatesAsync()
     {
-        // Predefined templates
-        var templates = new List<Template>
+        try
         {
-            new Template
+            // Predefined templates
+            var templates = new List<Template>
             {
-                Name = "System Monitor",
-                Description = "Shows CPU, GPU, and memory usage with progress bars",
-                Markup = await CreateSystemMonitorTemplateAsync()
-            },
-            new Template
-            {
-                Name = "Temperature Monitor",
-                Description = "Shows temperatures of key components",
-                Markup = await CreateTemperatureMonitorTemplateAsync()
-            },
-            new Template
-            {
-                Name = "Network Monitor",
-                Description = "Shows network activity and throughput",
-                Markup = await CreateNetworkMonitorTemplateAsync()
-            },
-            new Template
-            {
-                Name = "Storage Monitor",
-                Description = "Shows disk space usage and activity",
-                Markup = await CreateStorageMonitorTemplateAsync()
-            }
-        };
-
-        // Process templates to create preview elements
-        foreach (var template in templates)
-        {
-            template.PreviewElements = await ParseMarkupToPreviewElements(template.Markup);
-        }
-
-        TemplateList = new ObservableCollection<Template>(templates);
-
-        // Load custom templates
-        var config = await _configService.LoadConfigAsync();
-        if (config.SavedProfiles != null && config.SavedProfiles.Any())
-        {
-            var customTemplates = new List<Template>();
-
-            foreach (var profile in config.SavedProfiles)
-            {
-                if (profile.ScreenType == "OLED")
+                new Template
                 {
-                    var template = new Template
-                    {
-                        Name = profile.Name,
-                        Description = "Custom template",
-                        Markup = profile.ConfigData
-                    };
-
-                    template.PreviewElements = await ParseMarkupToPreviewElements(template.Markup);
-                    customTemplates.Add(template);
+                    Name = "System Monitor",
+                    Description = "Shows CPU, GPU, and memory usage with progress bars",
+                    Markup = await CreateSystemMonitorTemplateAsync()
+                },
+                new Template
+                {
+                    Name = "Temperature Monitor",
+                    Description = "Shows temperatures of key components",
+                    Markup = await CreateTemperatureMonitorTemplateAsync()
+                },
+                new Template
+                {
+                    Name = "Network Monitor",
+                    Description = "Shows network activity and throughput",
+                    Markup = await CreateNetworkMonitorTemplateAsync()
+                },
+                new Template
+                {
+                    Name = "Storage Monitor",
+                    Description = "Shows disk space usage and activity",
+                    Markup = await CreateStorageMonitorTemplateAsync()
                 }
+            };
+
+            // Process templates to create preview elements
+            foreach (var template in templates)
+            {
+                template.PreviewElements = await ParseMarkupToPreviewElements(template.Markup);
             }
 
-            CustomTemplates = new ObservableCollection<Template>(customTemplates);
+            TemplateList = new ObservableCollection<Template>(templates);
+
+            // Load custom templates
+            var config = await _configService.LoadConfigAsync();
+            if (config.SavedProfiles != null && config.SavedProfiles.Any())
+            {
+                var customTemplates = new List<Template>();
+
+                foreach (var profile in config.SavedProfiles)
+                {
+                    if (profile.ScreenType == "OLED")
+                    {
+                        var template = new Template
+                        {
+                            Name = profile.Name,
+                            Description = "Custom template",
+                            Markup = profile.ConfigData
+                        };
+
+                        template.PreviewElements = await ParseMarkupToPreviewElements(template.Markup);
+                        customTemplates.Add(template);
+                    }
+                }
+
+                CustomTemplates = new ObservableCollection<Template>(customTemplates);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading templates: {ex.Message}");
         }
     }
 
@@ -647,6 +696,7 @@ public class OledConfigViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
+            Debug.WriteLine($"Error saving configuration: {ex.Message}");
             await Shell.Current.DisplayAlert("Error", $"Failed to save configuration: {ex.Message}", "OK");
         }
         finally
@@ -682,6 +732,7 @@ public class OledConfigViewModel : BaseViewModel
         }
         catch (Exception ex)
         {
+            Debug.WriteLine($"Error previewing on device: {ex.Message}");
             await Shell.Current.DisplayAlert("Error", $"Preview failed: {ex.Message}", "OK");
         }
         finally
@@ -692,14 +743,21 @@ public class OledConfigViewModel : BaseViewModel
 
     private async Task ResetLayoutAsync()
     {
-        bool confirm = await Shell.Current.DisplayAlert(
-            "Reset Layout",
-            "Are you sure you want to reset your layout? This will discard all your changes.",
-            "Reset", "Cancel");
-
-        if (confirm)
+        try
         {
-            await LoadExampleMarkupAsync();
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Reset Layout",
+                "Are you sure you want to reset your layout? This will discard all your changes.",
+                "Reset", "Cancel");
+
+            if (confirm)
+            {
+                await LoadExampleMarkupAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error resetting layout: {ex.Message}");
         }
     }
 
@@ -709,7 +767,12 @@ public class OledConfigViewModel : BaseViewModel
         {
             // Parse the markup into preview elements
             var markupParser = new MarkupParser(_sensorService.GetAllSensorValues());
-            PreviewElements = markupParser.ParseMarkup(OledMarkup);
+            var elements = markupParser.ParseMarkup(OledMarkup);
+
+            // Update on main thread to ensure thread safety
+            MainThread.BeginInvokeOnMainThread(() => {
+                PreviewElements = elements;
+            });
         }
         catch (Exception ex)
         {
@@ -717,15 +780,43 @@ public class OledConfigViewModel : BaseViewModel
         }
     }
 
+    public void UpdateMarkupFromElements()
+    {
+        try
+        {
+            var sb = new System.Text.StringBuilder();
+
+            foreach (var element in OledElements)
+            {
+                sb.AppendLine(element.ToMarkup());
+            }
+
+            OledMarkup = sb.ToString();
+            UpdatePreviewFromMarkup();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error updating markup from elements: {ex.Message}");
+        }
+    }
+
     private async Task UpdateSensorDataAsync()
     {
         try
         {
+            if (_sensorUpdateCts.Token.IsCancellationRequested)
+                return;
+
             await _sensorService.UpdateSensorValuesAsync();
             UpdatePreviewFromMarkup();
 
             // Update available sensors
             await LoadSensorsAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+            Debug.WriteLine("Sensor update canceled");
         }
         catch (Exception ex)
         {
@@ -736,183 +827,204 @@ public class OledConfigViewModel : BaseViewModel
 
     private void ApplySensorFilter()
     {
-        if (string.IsNullOrEmpty(CurrentSensorFilter) || CurrentSensorFilter == "All")
+        try
         {
-            FilteredSensors = new ObservableCollection<SensorItem>(AvailableSensors);
-            return;
+            if (string.IsNullOrEmpty(CurrentSensorFilter) || CurrentSensorFilter == "All")
+            {
+                MainThread.BeginInvokeOnMainThread(() => {
+                    FilteredSensors = new ObservableCollection<SensorItem>(AvailableSensors);
+                });
+                return;
+            }
+
+            var filtered = AvailableSensors.Where(s =>
+                s.HardwareName.Contains(CurrentSensorFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            MainThread.BeginInvokeOnMainThread(() => {
+                FilteredSensors = new ObservableCollection<SensorItem>(filtered);
+            });
         }
-
-        var filtered = AvailableSensors.Where(s =>
-            s.HardwareName.Contains(CurrentSensorFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-
-        FilteredSensors = new ObservableCollection<SensorItem>(filtered);
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error applying sensor filter: {ex.Message}");
+        }
     }
 
     private void AddElement(string type)
     {
-        var element = new OledElement
+        try
         {
-            Type = type,
-            X = 10,
-            Y = 10
-        };
+            var element = new OledElement
+            {
+                Type = type,
+                X = 10,
+                Y = 10
+            };
 
-        // Set default properties based on type
-        switch (type)
-        {
-            case "text":
-                element.Properties["size"] = "1";
-                element.Properties["content"] = "New Text";
-                break;
+            // Set default properties based on type
+            switch (type)
+            {
+                case "text":
+                    element.Properties["size"] = "1";
+                    element.Properties["content"] = "New Text";
+                    break;
 
-            case "bar":
-                element.Properties["width"] = "100";
-                element.Properties["height"] = "8";
-                element.Properties["value"] = "50";
-                break;
+                case "bar":
+                    element.Properties["width"] = "100";
+                    element.Properties["height"] = "8";
+                    element.Properties["value"] = "50";
+                    break;
 
-            case "rect":
-            case "box":
-                element.Properties["width"] = "20";
-                element.Properties["height"] = "10";
-                break;
+                case "rect":
+                case "box":
+                    element.Properties["width"] = "20";
+                    element.Properties["height"] = "10";
+                    break;
 
-            case "line":
-                element.Properties["x2"] = "30";
-                element.Properties["y2"] = "30";
-                break;
+                case "line":
+                    element.Properties["x2"] = "30";
+                    element.Properties["y2"] = "30";
+                    break;
 
-            case "icon":
-                element.Properties["name"] = "cpu";
-                break;
-        }
+                case "icon":
+                    element.Properties["name"] = "cpu";
+                    break;
+            }
 
-        OledElements.Add(element);
-        SelectedElement = element;
-
-        // Update markup
-        UpdateMarkupFromElements();
-    }
-
-    private void DeleteSelectedElement()
-    {
-        if (SelectedElement != null)
-        {
-            OledElements.Remove(SelectedElement);
-            SelectedElement = null;
+            OledElements.Add(element);
+            SelectedElement = element;
 
             // Update markup
             UpdateMarkupFromElements();
         }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error adding element: {ex.Message}");
+        }
     }
 
-    public void UpdateMarkupFromElements()
+    private void DeleteSelectedElement()
     {
-        var sb = new System.Text.StringBuilder();
-
-        foreach (var element in OledElements)
+        try
         {
-            sb.AppendLine(element.ToMarkup());
-        }
+            if (SelectedElement != null)
+            {
+                OledElements.Remove(SelectedElement);
+                SelectedElement = null;
 
-        OledMarkup = sb.ToString();
-        UpdatePreviewFromMarkup();
+                // Update markup
+                UpdateMarkupFromElements();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error deleting element: {ex.Message}");
+        }
     }
 
     private async Task ParseMarkupToElementsAsync(string markup)
     {
         if (string.IsNullOrEmpty(markup))
         {
-            OledElements.Clear();
+            await MainThread.InvokeOnMainThreadAsync(() => {
+                OledElements.Clear();
+            });
             return;
         }
 
         var elements = new List<OledElement>();
 
-        // Parse text elements
-        foreach (Match match in Regex.Matches(markup, @"<text\s+x=(\d+)\s+y=(\d+)(?:\s+size=(\d+))?>([^<]*)</text>"))
+        try
         {
-            var element = new OledElement { Type = "text" };
-            element.X = int.Parse(match.Groups[1].Value);
-            element.Y = int.Parse(match.Groups[2].Value);
-
-            if (match.Groups[3].Success)
+            // Parse text elements
+            foreach (Match match in Regex.Matches(markup, @"<text\s+x=(\d+)\s+y=(\d+)(?:\s+size=(\d+))?>([^<]*)</text>"))
             {
-                element.Properties["size"] = match.Groups[3].Value;
+                var element = new OledElement { Type = "text" };
+                element.X = int.Parse(match.Groups[1].Value);
+                element.Y = int.Parse(match.Groups[2].Value);
+
+                if (match.Groups[3].Success)
+                {
+                    element.Properties["size"] = match.Groups[3].Value;
+                }
+                else
+                {
+                    element.Properties["size"] = "1";
+                }
+
+                element.Properties["content"] = match.Groups[4].Value;
+                elements.Add(element);
             }
-            else
+
+            // Parse bar elements
+            foreach (Match match in Regex.Matches(markup, @"<bar\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s+val=(\d+|\{[^}]+\})\s*/>"))
             {
-                element.Properties["size"] = "1";
+                var element = new OledElement { Type = "bar" };
+                element.X = int.Parse(match.Groups[1].Value);
+                element.Y = int.Parse(match.Groups[2].Value);
+                element.Properties["width"] = match.Groups[3].Value;
+                element.Properties["height"] = match.Groups[4].Value;
+                element.Properties["value"] = match.Groups[5].Value;
+                elements.Add(element);
             }
 
-            element.Properties["content"] = match.Groups[4].Value;
-            elements.Add(element);
-        }
-
-        // Parse bar elements
-        foreach (Match match in Regex.Matches(markup, @"<bar\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s+val=(\d+|\{[^}]+\})\s*/>"))
-        {
-            var element = new OledElement { Type = "bar" };
-            element.X = int.Parse(match.Groups[1].Value);
-            element.Y = int.Parse(match.Groups[2].Value);
-            element.Properties["width"] = match.Groups[3].Value;
-            element.Properties["height"] = match.Groups[4].Value;
-            element.Properties["value"] = match.Groups[5].Value;
-            elements.Add(element);
-        }
-
-        // Parse rect elements
-        foreach (Match match in Regex.Matches(markup, @"<rect\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s*/>"))
-        {
-            var element = new OledElement { Type = "rect" };
-            element.X = int.Parse(match.Groups[1].Value);
-            element.Y = int.Parse(match.Groups[2].Value);
-            element.Properties["width"] = match.Groups[3].Value;
-            element.Properties["height"] = match.Groups[4].Value;
-            elements.Add(element);
-        }
-
-        // Parse box elements
-        foreach (Match match in Regex.Matches(markup, @"<box\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s*/>"))
-        {
-            var element = new OledElement { Type = "box" };
-            element.X = int.Parse(match.Groups[1].Value);
-            element.Y = int.Parse(match.Groups[2].Value);
-            element.Properties["width"] = match.Groups[3].Value;
-            element.Properties["height"] = match.Groups[4].Value;
-            elements.Add(element);
-        }
-
-        // Parse line elements
-        foreach (Match match in Regex.Matches(markup, @"<line\s+x1=(\d+)\s+y1=(\d+)\s+x2=(\d+)\s+y2=(\d+)\s*/>"))
-        {
-            var element = new OledElement { Type = "line" };
-            element.X = int.Parse(match.Groups[1].Value);
-            element.Y = int.Parse(match.Groups[2].Value);
-            element.Properties["x2"] = match.Groups[3].Value;
-            element.Properties["y2"] = match.Groups[4].Value;
-            elements.Add(element);
-        }
-
-        // Parse icon elements
-        foreach (Match match in Regex.Matches(markup, @"<icon\s+x=(\d+)\s+y=(\d+)\s+name=([a-zA-Z0-9_]+)\s*/>"))
-        {
-            var element = new OledElement { Type = "icon" };
-            element.X = int.Parse(match.Groups[1].Value);
-            element.Y = int.Parse(match.Groups[2].Value);
-            element.Properties["name"] = match.Groups[3].Value;
-            elements.Add(element);
-        }
-
-        // Update the collection on the UI thread
-        await MainThread.InvokeOnMainThreadAsync(() =>
-        {
-            OledElements.Clear();
-            foreach (var element in elements)
+            // Parse rect elements
+            foreach (Match match in Regex.Matches(markup, @"<rect\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s*/>"))
             {
-                OledElements.Add(element);
+                var element = new OledElement { Type = "rect" };
+                element.X = int.Parse(match.Groups[1].Value);
+                element.Y = int.Parse(match.Groups[2].Value);
+                element.Properties["width"] = match.Groups[3].Value;
+                element.Properties["height"] = match.Groups[4].Value;
+                elements.Add(element);
             }
-        });
+
+            // Parse box elements
+            foreach (Match match in Regex.Matches(markup, @"<box\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s*/>"))
+            {
+                var element = new OledElement { Type = "box" };
+                element.X = int.Parse(match.Groups[1].Value);
+                element.Y = int.Parse(match.Groups[2].Value);
+                element.Properties["width"] = match.Groups[3].Value;
+                element.Properties["height"] = match.Groups[4].Value;
+                elements.Add(element);
+            }
+
+            // Parse line elements
+            foreach (Match match in Regex.Matches(markup, @"<line\s+x1=(\d+)\s+y1=(\d+)\s+x2=(\d+)\s+y2=(\d+)\s*/>"))
+            {
+                var element = new OledElement { Type = "line" };
+                element.X = int.Parse(match.Groups[1].Value);
+                element.Y = int.Parse(match.Groups[2].Value);
+                element.Properties["x2"] = match.Groups[3].Value;
+                element.Properties["y2"] = match.Groups[4].Value;
+                elements.Add(element);
+            }
+
+            // Parse icon elements
+            foreach (Match match in Regex.Matches(markup, @"<icon\s+x=(\d+)\s+y=(\d+)\s+name=([a-zA-Z0-9_]+)\s*/>"))
+            {
+                var element = new OledElement { Type = "icon" };
+                element.X = int.Parse(match.Groups[1].Value);
+                element.Y = int.Parse(match.Groups[2].Value);
+                element.Properties["name"] = match.Groups[3].Value;
+                elements.Add(element);
+            }
+
+            // Update the collection on the UI thread
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                OledElements.Clear();
+                foreach (var element in elements)
+                {
+                    OledElements.Add(element);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error parsing markup: {ex.Message}");
+        }
     }
 
     private async Task<List<PreviewElement>> ParseMarkupToPreviewElements(string markup)
@@ -947,297 +1059,409 @@ public class OledConfigViewModel : BaseViewModel
 
     private void AddSensorToDisplay(string sensorId)
     {
-        // Find the sensor
-        var sensor = AvailableSensors.FirstOrDefault(s => s.Id == sensorId);
-
-        if (sensor == null)
+        try
         {
-            return;
-        }
+            // Find the sensor
+            var sensor = AvailableSensors.FirstOrDefault(s => s.Id == sensorId);
 
-        // Determine appropriate Y position (avoid overlap)
-        int yPos = 15;
-        if (OledElements.Any())
-        {
-            yPos = OledElements.Max(e => e.Y) + 15;
-        }
-
-        // Create text element with the sensor variable
-        var element = new OledElement
-        {
-            Type = "text",
-            X = 10,
-            Y = yPos
-        };
-
-        element.Properties["size"] = "1";
-        element.Properties["content"] = $"{sensor.Name}: {{{sensorId}}} {sensor.Unit}";
-
-        OledElements.Add(element);
-        SelectedElement = element;
-
-        // Create a progress bar if it's a load/percentage sensor
-        if (sensor.SensorType == LibreHardwareMonitor.Hardware.SensorType.Load ||
-            sensor.SensorType == LibreHardwareMonitor.Hardware.SensorType.Level)
-        {
-            var barElement = new OledElement
+            if (sensor == null)
             {
-                Type = "bar",
+                return;
+            }
+
+            // Determine appropriate Y position (avoid overlap)
+            int yPos = 15;
+            if (OledElements.Any())
+            {
+                yPos = OledElements.Max(e => e.Y) + 15;
+            }
+
+            // Create text element with the sensor variable
+            var element = new OledElement
+            {
+                Type = "text",
                 X = 10,
-                Y = yPos + 5
+                Y = yPos
             };
 
-            barElement.Properties["width"] = "100";
-            barElement.Properties["height"] = "8";
-            barElement.Properties["value"] = $"{{{sensorId}}}";
+            element.Properties["size"] = "1";
+            element.Properties["content"] = $"{sensor.Name}: {{{sensorId}}} {sensor.Unit}";
 
-            OledElements.Add(barElement);
+            OledElements.Add(element);
+            SelectedElement = element;
+
+            // Create a progress bar if it's a load/percentage sensor
+            if (sensor.SensorType == LibreHardwareMonitor.Hardware.SensorType.Load ||
+                sensor.SensorType == LibreHardwareMonitor.Hardware.SensorType.Level)
+            {
+                var barElement = new OledElement
+                {
+                    Type = "bar",
+                    X = 10,
+                    Y = yPos + 5
+                };
+
+                barElement.Properties["width"] = "100";
+                barElement.Properties["height"] = "8";
+                barElement.Properties["value"] = $"{{{sensorId}}}";
+
+                OledElements.Add(barElement);
+            }
+
+            // Update markup
+            UpdateMarkupFromElements();
         }
-
-        // Update markup
-        UpdateMarkupFromElements();
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error adding sensor to display: {ex.Message}");
+        }
     }
 
     private async Task BrowseIconsAsync()
     {
-        // A mock implementation - in a real app, you'd implement a proper icon browser
-        var icons = new string[] { "cpu", "gpu", "ram", "disk", "network", "fan" };
-        string result = await Shell.Current.DisplayActionSheet("Select an icon", "Cancel", null, icons);
-
-        if (!string.IsNullOrEmpty(result) && result != "Cancel")
+        try
         {
-            SelectedElementIconName = result;
+            // A mock implementation - in a real app, you'd implement a proper icon browser
+            var icons = new string[] { "cpu", "gpu", "ram", "disk", "network", "fan" };
+            string result = await Shell.Current.DisplayActionSheet("Select an icon", "Cancel", null, icons);
+
+            if (!string.IsNullOrEmpty(result) && result != "Cancel")
+            {
+                SelectedElementIconName = result;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error browsing icons: {ex.Message}");
         }
     }
 
     private void InsertMarkupTemplate(string type)
     {
-        string template = string.Empty;
-
-        switch (type)
+        try
         {
-            case "text":
-                template = "<text x=10 y=20 size=1>Sample Text</text>";
-                break;
+            string template = string.Empty;
 
-            case "bar":
-                template = "<bar x=10 y=30 w=100 h=8 val=75 />";
-                break;
+            switch (type)
+            {
+                case "text":
+                    template = "<text x=10 y=20 size=1>Sample Text</text>";
+                    break;
+
+                case "bar":
+                    template = "<bar x=10 y=30 w=100 h=8 val=75 />";
+                    break;
+
+                case "rect":
+                    template = "<rect x=10 y=40 w=50 h=20 />";
+                    break;
+
+                case "box":
+                    template = "<box x=70 y=40 w=50 h=20 />";
+                    break;
+
+                case "line":
+                    template = "<line x1=10 y1=50 x2=60 y2=50 />";
+                    break;
+
+                case "icon":
+                    template = "<icon x=130 y=20 name=cpu />";
+                    break;
+            }
+
+            if (!string.IsNullOrEmpty(template))
+            {
+                OledMarkup += Environment.NewLine + template;
+                UpdatePreviewFromMarkup();
+            }
         }
-
-        if (!string.IsNullOrEmpty(template))
+        catch (Exception ex)
         {
-            OledMarkup += Environment.NewLine + template;
-            UpdatePreviewFromMarkup();
+            Debug.WriteLine($"Error inserting markup template: {ex.Message}");
         }
     }
 
     private async Task InsertSensorVariableAsync()
     {
-        // Create a list of sensor options
-        var options = AvailableSensors.Select(s => $"{s.DisplayName} ({s.Id})").ToArray();
-
-        string result = await Shell.Current.DisplayActionSheet("Select a sensor", "Cancel", null, options);
-
-        if (!string.IsNullOrEmpty(result) && result != "Cancel")
+        try
         {
-            // Extract sensor ID
-            string id = result.Substring(result.LastIndexOf('(') + 1).TrimEnd(')');
+            // Create a list of sensor options
+            var options = AvailableSensors.Select(s => $"{s.DisplayName} ({s.Id})").ToArray();
 
-            // Insert the variable at the current cursor position (not implemented in this mock-up)
-            // In a real implementation, you'd need to track the cursor position in the editor
-            OledMarkup += $"{{{id}}}";
-            UpdatePreviewFromMarkup();
+            string result = await Shell.Current.DisplayActionSheet("Select a sensor", "Cancel", null, options);
+
+            if (!string.IsNullOrEmpty(result) && result != "Cancel")
+            {
+                // Extract sensor ID
+                string id = result.Substring(result.LastIndexOf('(') + 1).TrimEnd(')');
+
+                // Insert the variable at the current cursor position (not implemented in this mock-up)
+                // In a real implementation, you'd need to track the cursor position in the editor
+                OledMarkup += $"{{{id}}}";
+                UpdatePreviewFromMarkup();
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error inserting sensor variable: {ex.Message}");
         }
     }
 
     private async Task LoadExampleMarkupAsync()
     {
-        OledMarkup = await _sensorService.CreateExampleMarkupAsync();
-        await ParseMarkupToElementsAsync(OledMarkup);
-        UpdatePreviewFromMarkup();
+        try
+        {
+            OledMarkup = await _sensorService.CreateExampleMarkupAsync();
+            await ParseMarkupToElementsAsync(OledMarkup);
+            UpdatePreviewFromMarkup();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading example markup: {ex.Message}");
+        }
     }
 
     private async Task<string> CreateSystemMonitorTemplateAsync()
     {
-        return await _sensorService.CreateExampleMarkupAsync();
+        try
+        {
+            return await _sensorService.CreateExampleMarkupAsync();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error creating system monitor template: {ex.Message}");
+            return "<text x=10 y=20 size=1>System Monitor</text>";
+        }
     }
 
     private async Task<string> CreateTemperatureMonitorTemplateAsync()
     {
-        var sb = new System.Text.StringBuilder();
-
-        string cpuTemp = _sensorService.FindFirstSensorOfType(LibreHardwareMonitor.Hardware.HardwareType.Cpu,
-            LibreHardwareMonitor.Hardware.SensorType.Temperature);
-
-        string gpuTemp = _sensorService.FindFirstSensorOfType(LibreHardwareMonitor.Hardware.HardwareType.GpuNvidia,
-            LibreHardwareMonitor.Hardware.SensorType.Temperature);
-
-        sb.AppendLine("<text x=0 y=12 size=2>Temperatures</text>");
-
-        if (!string.IsNullOrEmpty(cpuTemp))
+        try
         {
-            sb.AppendLine($"<text x=0 y=30 size=1>CPU: {{{cpuTemp}}}°C</text>");
-        }
+            var sb = new System.Text.StringBuilder();
 
-        if (!string.IsNullOrEmpty(gpuTemp))
+            string cpuTemp = _sensorService.FindFirstSensorOfType(LibreHardwareMonitor.Hardware.HardwareType.Cpu,
+                LibreHardwareMonitor.Hardware.SensorType.Temperature);
+
+            string gpuTemp = _sensorService.FindFirstSensorOfType(LibreHardwareMonitor.Hardware.HardwareType.GpuNvidia,
+                LibreHardwareMonitor.Hardware.SensorType.Temperature);
+
+            sb.AppendLine("<text x=0 y=12 size=2>Temperatures</text>");
+
+            if (!string.IsNullOrEmpty(cpuTemp))
+            {
+                sb.AppendLine($"<text x=0 y=30 size=1>CPU: {{{cpuTemp}}}°C</text>");
+            }
+
+            if (!string.IsNullOrEmpty(gpuTemp))
+            {
+                sb.AppendLine($"<text x=0 y=45 size=1>GPU: {{{gpuTemp}}}°C</text>");
+            }
+
+            return sb.ToString();
+        }
+        catch (Exception ex)
         {
-            sb.AppendLine($"<text x=0 y=45 size=1>GPU: {{{gpuTemp}}}°C</text>");
+            Debug.WriteLine($"Error creating temperature monitor template: {ex.Message}");
+            return "<text x=10 y=20 size=1>Temperature Monitor</text>";
         }
-
-        return sb.ToString();
     }
 
     private async Task<string> CreateNetworkMonitorTemplateAsync()
     {
-        var sb = new System.Text.StringBuilder();
+        try
+        {
+            var sb = new System.Text.StringBuilder();
 
-        sb.AppendLine("<text x=0 y=12 size=2>Network Monitor</text>");
-        sb.AppendLine("<text x=0 y=30 size=1>Coming soon!</text>");
+            sb.AppendLine("<text x=0 y=12 size=2>Network Monitor</text>");
+            sb.AppendLine("<text x=0 y=30 size=1>Coming soon!</text>");
 
-        return sb.ToString();
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error creating network monitor template: {ex.Message}");
+            return "<text x=10 y=20 size=1>Network Monitor</text>";
+        }
     }
 
     private async Task<string> CreateStorageMonitorTemplateAsync()
     {
-        var sb = new System.Text.StringBuilder();
+        try
+        {
+            var sb = new System.Text.StringBuilder();
 
-        sb.AppendLine("<text x=0 y=12 size=2>Storage Monitor</text>");
-        sb.AppendLine("<text x=0 y=30 size=1>Coming soon!</text>");
+            sb.AppendLine("<text x=0 y=12 size=2>Storage Monitor</text>");
+            sb.AppendLine("<text x=0 y=30 size=1>Coming soon!</text>");
 
-        return sb.ToString();
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error creating storage monitor template: {ex.Message}");
+            return "<text x=10 y=20 size=1>Storage Monitor</text>";
+        }
     }
 
     private async Task UseSelectedTemplateAsync()
     {
-        if (SelectedTemplate == null)
+        try
         {
-            return;
+            if (SelectedTemplate == null)
+            {
+                return;
+            }
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Apply Template",
+                "Are you sure you want to apply this template? This will replace your current design.",
+                "Apply", "Cancel");
+
+            if (confirm)
+            {
+                OledMarkup = SelectedTemplate.Markup;
+                await ParseMarkupToElementsAsync(OledMarkup);
+                UpdatePreviewFromMarkup();
+                SwitchTab("markup");
+            }
         }
-
-        bool confirm = await Shell.Current.DisplayAlert(
-            "Apply Template",
-            "Are you sure you want to apply this template? This will replace your current design.",
-            "Apply", "Cancel");
-
-        if (confirm)
+        catch (Exception ex)
         {
-            OledMarkup = SelectedTemplate.Markup;
-            await ParseMarkupToElementsAsync(OledMarkup);
-            UpdatePreviewFromMarkup();
-            SwitchTab("markup");
+            Debug.WriteLine($"Error using selected template: {ex.Message}");
         }
     }
 
     private async Task SaveAsTemplateAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewTemplateName))
+        try
         {
-            await Shell.Current.DisplayAlert("Error", "Please enter a name for your template.", "OK");
-            return;
-        }
-
-        // Check for duplicate names
-        if (CustomTemplates.Any(t => t.Name == NewTemplateName))
-        {
-            bool replace = await Shell.Current.DisplayAlert(
-                "Template Exists",
-                "A template with this name already exists. Do you want to replace it?",
-                "Replace", "Cancel");
-
-            if (!replace)
+            if (string.IsNullOrWhiteSpace(NewTemplateName))
             {
+                await Shell.Current.DisplayAlert("Error", "Please enter a name for your template.", "OK");
                 return;
             }
 
-            // Remove the existing template
-            var existingTemplate = CustomTemplates.First(t => t.Name == NewTemplateName);
-            CustomTemplates.Remove(existingTemplate);
+            // Check for duplicate names
+            if (CustomTemplates.Any(t => t.Name == NewTemplateName))
+            {
+                bool replace = await Shell.Current.DisplayAlert(
+                    "Template Exists",
+                    "A template with this name already exists. Do you want to replace it?",
+                    "Replace", "Cancel");
+
+                if (!replace)
+                {
+                    return;
+                }
+
+                // Remove the existing template
+                var existingTemplate = CustomTemplates.First(t => t.Name == NewTemplateName);
+                CustomTemplates.Remove(existingTemplate);
+            }
+
+            // Create new template
+            var template = new Template
+            {
+                Name = NewTemplateName,
+                Description = "Custom template",
+                Markup = OledMarkup
+            };
+
+            template.PreviewElements = await ParseMarkupToPreviewElements(template.Markup);
+            CustomTemplates.Add(template);
+
+            // Save to configuration
+            var config = await _configService.LoadConfigAsync();
+
+            if (config.SavedProfiles == null)
+            {
+                config.SavedProfiles = new List<DisplayProfile>();
+            }
+
+            // Remove existing profile with same name
+            config.SavedProfiles.RemoveAll(p => p.Name == NewTemplateName && p.ScreenType == "OLED");
+
+            // Add new profile
+            config.SavedProfiles.Add(new DisplayProfile
+            {
+                Name = NewTemplateName,
+                ScreenType = "OLED",
+                ConfigData = OledMarkup
+            });
+
+            await _configService.SaveConfigAsync(config);
+
+            // Clear the input field
+            NewTemplateName = string.Empty;
+
+            await Shell.Current.DisplayAlert("Success", "Template saved successfully!", "OK");
         }
-
-        // Create new template
-        var template = new Template
+        catch (Exception ex)
         {
-            Name = NewTemplateName,
-            Description = "Custom template",
-            Markup = OledMarkup
-        };
-
-        template.PreviewElements = await ParseMarkupToPreviewElements(template.Markup);
-        CustomTemplates.Add(template);
-
-        // Save to configuration
-        var config = await _configService.LoadConfigAsync();
-
-        if (config.SavedProfiles == null)
-        {
-            config.SavedProfiles = new List<DisplayProfile>();
+            Debug.WriteLine($"Error saving as template: {ex.Message}");
+            await Shell.Current.DisplayAlert("Error", $"Failed to save template: {ex.Message}", "OK");
         }
-
-        // Remove existing profile with same name
-        config.SavedProfiles.RemoveAll(p => p.Name == NewTemplateName && p.ScreenType == "OLED");
-
-        // Add new profile
-        config.SavedProfiles.Add(new DisplayProfile
-        {
-            Name = NewTemplateName,
-            ScreenType = "OLED",
-            ConfigData = OledMarkup
-        });
-
-        await _configService.SaveConfigAsync(config);
-
-        // Clear the input field
-        NewTemplateName = string.Empty;
-
-        await Shell.Current.DisplayAlert("Success", "Template saved successfully!", "OK");
     }
 
     private async Task UseCustomTemplateAsync(Template template)
     {
-        if (template == null)
+        try
         {
-            return;
+            if (template == null)
+            {
+                return;
+            }
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Apply Template",
+                "Are you sure you want to apply this template? This will replace your current design.",
+                "Apply", "Cancel");
+
+            if (confirm)
+            {
+                OledMarkup = template.Markup;
+                await ParseMarkupToElementsAsync(OledMarkup);
+                UpdatePreviewFromMarkup();
+                SwitchTab("markup");
+            }
         }
-
-        bool confirm = await Shell.Current.DisplayAlert(
-            "Apply Template",
-            "Are you sure you want to apply this template? This will replace your current design.",
-            "Apply", "Cancel");
-
-        if (confirm)
+        catch (Exception ex)
         {
-            OledMarkup = template.Markup;
-            await ParseMarkupToElementsAsync(OledMarkup);
-            UpdatePreviewFromMarkup();
-            SwitchTab("markup");
+            Debug.WriteLine($"Error using custom template: {ex.Message}");
         }
     }
 
     private async Task DeleteCustomTemplateAsync(Template template)
     {
-        if (template == null)
+        try
         {
-            return;
-        }
-
-        bool confirm = await Shell.Current.DisplayAlert(
-            "Delete Template",
-            $"Are you sure you want to delete the template '{template.Name}'?",
-            "Delete", "Cancel");
-
-        if (confirm)
-        {
-            CustomTemplates.Remove(template);
-
-            // Update configuration
-            var config = await _configService.LoadConfigAsync();
-
-            if (config.SavedProfiles != null)
+            if (template == null)
             {
-                config.SavedProfiles.RemoveAll(p => p.Name == template.Name && p.ScreenType == "OLED");
-                await _configService.SaveConfigAsync(config);
+                return;
             }
+
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Delete Template",
+                $"Are you sure you want to delete the template '{template.Name}'?",
+                "Delete", "Cancel");
+
+            if (confirm)
+            {
+                CustomTemplates.Remove(template);
+
+                // Update configuration
+                var config = await _configService.LoadConfigAsync();
+
+                if (config.SavedProfiles != null)
+                {
+                    config.SavedProfiles.RemoveAll(p => p.Name == template.Name && p.ScreenType == "OLED");
+                    await _configService.SaveConfigAsync(config);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error deleting custom template: {ex.Message}");
         }
     }
 }

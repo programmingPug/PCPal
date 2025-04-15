@@ -86,12 +86,6 @@
         <Setter Property="ThumbColor" Value="{AppThemeBinding Light={StaticResource Surface}, Dark=White}" />
     </Style>
 
-    <Style TargetType="TabBar">
-        <Setter Property="BarBackgroundColor" Value="{AppThemeBinding Light={StaticResource Surface}, Dark=#333333}" />
-        <Setter Property="BarTextColor" Value="{AppThemeBinding Light=#777777, Dark=#777777}" />
-        <Setter Property="BarSelectedTextColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}" />
-    </Style>
-
     <!-- Custom Styles -->
 
     <Style x:Key="HeaderLabelStyle" TargetType="Label">

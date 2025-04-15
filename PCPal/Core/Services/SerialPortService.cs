@@ -16,12 +16,13 @@ public interface ISerialPortService
     event EventHandler<bool> ConnectionStatusChanged;
 }
 
-public class SerialPortService : ISerialPortService
+public class SerialPortService : ISerialPortService, IDisposable
 {
     private SerialPort _serialPort;
     private bool _isConnected;
     private string _currentPort;
     private readonly ILogger<SerialPortService> _logger;
+    private bool _disposed = false;
 
     public bool IsConnected => _isConnected;
     public string CurrentPort => _currentPort;
@@ -30,13 +31,19 @@ public class SerialPortService : ISerialPortService
 
     public SerialPortService(ILogger<SerialPortService> logger)
     {
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _isConnected = false;
         _currentPort = string.Empty;
     }
 
     public async Task<bool> ConnectAsync(string port)
     {
+        if (string.IsNullOrEmpty(port))
+        {
+            _logger.LogWarning("Cannot connect to null or empty port name");
+            return false;
+        }
+
         try
         {
             // Disconnect if already connected
@@ -71,6 +78,7 @@ public class SerialPortService : ISerialPortService
             // Not a valid PCPal device, close the connection
             _serialPort.Close();
             _serialPort.Dispose();
+            _serialPort = null;
             return false;
         }
         catch (Exception ex)
@@ -81,6 +89,7 @@ public class SerialPortService : ISerialPortService
             {
                 _serialPort.Close();
                 _serialPort.Dispose();
+                _serialPort = null;
             }
 
             return false;
@@ -126,8 +135,15 @@ public class SerialPortService : ISerialPortService
 
     public async Task<bool> SendCommandAsync(string command)
     {
+        if (string.IsNullOrEmpty(command))
+        {
+            _logger.LogWarning("Cannot send null or empty command");
+            return false;
+        }
+
         if (!_isConnected || _serialPort == null || !_serialPort.IsOpen)
         {
+            _logger.LogWarning("Cannot send command: Device not connected");
             return false;
         }
 
@@ -155,9 +171,10 @@ public class SerialPortService : ISerialPortService
 
         foreach (string port in ports)
         {
+            SerialPort testPort = null;
             try
             {
-                using SerialPort testPort = new SerialPort(port, 115200)
+                testPort = new SerialPort(port, 115200)
                 {
                     ReadTimeout = 1000,
                     WriteTimeout = 1000
@@ -173,15 +190,33 @@ public class SerialPortService : ISerialPortService
                     response.Contains("DISPLAY_TYPE:OLED") ||
                     response.Contains("DISPLAY_TYPE:TFT"))
                 {
+                    // Make sure to close and dispose the port before returning
+                    testPort.Close();
+                    testPort.Dispose();
                     return port;
                 }
 
                 testPort.Close();
+                testPort.Dispose();
             }
-            catch
+            catch (Exception ex)
             {
-                // Skip ports that can't be opened
-                continue;
+                _logger.LogDebug(ex, $"Failed to check port {port}");
+
+                // Clean up the port if an exception occurs
+                if (testPort != null)
+                {
+                    try
+                    {
+                        if (testPort.IsOpen)
+                            testPort.Close();
+                        testPort.Dispose();
+                    }
+                    catch (Exception disposalEx)
+                    {
+                        _logger.LogDebug(disposalEx, $"Error disposing test port {port}");
+                    }
+                }
             }
         }
 
@@ -224,8 +259,10 @@ public class SerialPortService : ISerialPortService
 
             return connected;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error checking connection");
+
             if (_isConnected)
             {
                 _isConnected = false;
@@ -235,5 +272,41 @@ public class SerialPortService : ISerialPortService
 
             return false;
         }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                if (_serialPort != null && _serialPort.IsOpen)
+                {
+                    try
+                    {
+                        _serialPort.Close();
+                        _serialPort.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error disposing serial port");
+                    }
+                    _serialPort = null;
+                }
+            }
+
+            _disposed = true;
+        }
+    }
+
+    ~SerialPortService()
+    {
+        Dispose(false);
     }
 }

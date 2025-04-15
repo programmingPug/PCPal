@@ -1,72 +1,77 @@
 <Shell xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
        xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-       x:Class="PCPal.Configurator.AppShell">
-    
-    <Shell.ContentTemplate>
-        <Grid ColumnDefinitions="220,*">
-            <!-- Sidebar -->
-            <StackLayout Grid.Column="0" 
-                         Padding="10" 
-                         Spacing="10"
-                         BackgroundColor="{StaticResource Surface}">
+       xmlns:views="clr-namespace:PCPal.Configurator.Views"
+       x:Class="PCPal.Configurator.AppShell"
+       Shell.NavBarIsVisible="False"
+       Shell.FlyoutBehavior="Disabled">
 
-                <!-- App logo and title -->
-                <HorizontalStackLayout Spacing="10" Margin="0,10,0,20">
-                    <Image Source="app_icon.png" HeightRequest="32" WidthRequest="32" />
-                    <Label Text="PCPal" 
-                           FontSize="22" 
-                           FontAttributes="Bold" 
-                           TextColor="{StaticResource Primary}" 
-                           VerticalOptions="Center" />
-                </HorizontalStackLayout>
+    <ShellContent>
+        <ContentPage>
+            <Grid ColumnDefinitions="220,*">
+                <!-- Sidebar -->
+                <StackLayout Grid.Column="0" 
+                             Padding="10" 
+                             Spacing="10"
+                             BackgroundColor="{StaticResource Surface}">
 
-                <!-- Navigation menu -->
-                <CollectionView x:Name="NavMenu" 
-                               SelectionMode="Single" 
-                               SelectionChanged="OnNavMenuSelectionChanged">
-                    <CollectionView.ItemsSource>
-                        <x:Array Type="{x:Type x:String}">
-                            <x:String>1602 LCD Display</x:String>
-                            <x:String>4.6" TFT Display</x:String>
-                            <x:String>OLED Display</x:String>
-                            <x:String>Settings</x:String>
-                            <x:String>Help</x:String>
-                        </x:Array>
-                    </CollectionView.ItemsSource>
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="15,10"
-                                    StrokeShape="RoundRectangle 8,8,8,8"
-                                    BackgroundColor="{Binding Source={x:Reference NavMenu}, Path=SelectedItem, Converter={StaticResource StringMatchConverter}, ConverterParameter={Binding .}}">
-                                <HorizontalStackLayout Spacing="10">
-                                    <Label Text="{Binding .}" 
-                                           VerticalOptions="Center"
-                                           TextColor="{Binding Source={x:Reference NavMenu}, Path=SelectedItem, Converter={StaticResource StringMatchTextConverter}, ConverterParameter={Binding .}}" />
-                                </HorizontalStackLayout>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
-
-                <!-- Connection status -->
-                <StackLayout VerticalOptions="EndAndExpand" Margin="0,30,0,10">
-                    <HorizontalStackLayout Spacing="8">
-                        <Ellipse Fill="{Binding IsConnected, Converter={StaticResource ConnectionStatusColorConverter}}"
-                                WidthRequest="12"
-                                HeightRequest="12" />
-                        <Label Text="{Binding ConnectionStatus}" 
-                               FontSize="14" 
-                               TextColor="{StaticResource TextSecondary}" />
+                    <!-- App logo and title -->
+                    <HorizontalStackLayout Spacing="10" Margin="0,10,0,20">
+                        <Image Source="app_icon.png" HeightRequest="32" WidthRequest="32" />
+                        <Label Text="PCPal" 
+                               FontSize="22" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource Primary}" 
+                               VerticalOptions="Center" />
                     </HorizontalStackLayout>
-                    <Label Text="{Binding LastUpdateTime, StringFormat='Updated: {0}'}" 
-                           FontSize="12" 
-                           TextColor="{StaticResource TextSecondary}" 
-                           Margin="0,5,0,0" />
-                </StackLayout>
-            </StackLayout>
 
-            <!-- Content area -->
-            <ContentView Grid.Column="1" x:Name="ContentContainer" />
-        </Grid>
-    </Shell.ContentTemplate>
+                    <!-- Navigation menu -->
+                    <CollectionView x:Name="NavMenu" 
+                                   SelectionMode="Single" 
+                                   SelectionChanged="OnNavMenuSelectionChanged">
+                        <CollectionView.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>1602 LCD Display</x:String>
+                                <x:String>4.6" TFT Display</x:String>
+                                <x:String>OLED Display</x:String>
+                                <x:String>Settings</x:String>
+                                <x:String>Help</x:String>
+                            </x:Array>
+                        </CollectionView.ItemsSource>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="15,10"
+                                        StrokeShape="RoundRectangle 8,8,8,8"
+                                        BackgroundColor="{Binding Source={x:Reference NavMenu}, Path=SelectedItem, Converter={StaticResource StringMatchConverter}, ConverterParameter={Binding .}}">
+                                    <HorizontalStackLayout Spacing="10">
+                                        <Label Text="{Binding .}" 
+                                               VerticalOptions="Center"
+                                               TextColor="{Binding Source={x:Reference NavMenu}, Path=SelectedItem, Converter={StaticResource StringMatchTextConverter}, ConverterParameter={Binding .}}" />
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
+                    <!-- Connection status -->
+                    <StackLayout VerticalOptions="EndAndExpand" Margin="0,30,0,10">
+                        <HorizontalStackLayout Spacing="8">
+                            <Ellipse Fill="{Binding IsConnected, Converter={StaticResource ConnectionStatusColorConverter}}"
+                                    WidthRequest="12"
+                                    HeightRequest="12" />
+                            <Label Text="{Binding ConnectionStatus}" 
+                                   FontSize="14" 
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </HorizontalStackLayout>
+                        <Label Text="{Binding LastUpdateTime, StringFormat='Updated: {0}'}" 
+                               FontSize="12" 
+                               TextColor="{StaticResource TextSecondary}" 
+                               Margin="0,5,0,0" />
+                    </StackLayout>
+                </StackLayout>
+
+                <!-- Content area -->
+                <ContentView Grid.Column="1" x:Name="ContentContainer" />
+            </Grid>
+        </ContentPage>
+    </ShellContent>
 </Shell>

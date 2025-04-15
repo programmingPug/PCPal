@@ -83,15 +83,21 @@ public class StringMatchConverter : IValueConverter
         {
             if (currentValue == targetValue)
             {
-                // Handle different return types based on an additional parameter
-                if (parameter is string param2 && param2 == "TextColor")
+                // Default to background coloring
+                Color returnColor = Application.Current.Resources["PrimaryLight"] as Color ?? Colors.LightBlue;
+
+                // Check for additional parameter context
+                if (targetValue.EndsWith(":TextColor"))
                 {
-                    // Return text color for selected item
-                    return Application.Current.Resources["Primary"] as Color ?? Colors.Black;
+                    // Strip the ":TextColor" suffix before comparison
+                    string strippedTarget = targetValue.Substring(0, targetValue.Length - 10);
+                    if (currentValue == strippedTarget)
+                    {
+                        return Application.Current.Resources["Primary"] as Color ?? Colors.Black;
+                    }
                 }
 
-                // Return background color for selected item
-                return Application.Current.Resources["PrimaryLight"] as Color ?? Colors.LightBlue;
+                return returnColor;
             }
         }
 

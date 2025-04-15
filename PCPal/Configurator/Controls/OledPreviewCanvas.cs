@@ -1,5 +1,4 @@
-﻿//using Android.Sax;
-using Microsoft.Maui.Controls.Shapes;
+﻿using Microsoft.Maui.Controls.Shapes;
 using PCPal.Configurator.ViewModels;
 using PCPal.Core.Models;
 using System.Collections.ObjectModel;
@@ -162,138 +161,142 @@ public class OledPreviewCanvas : GraphicsView
         dragStartPoint = point;
 
         // Check if an element was clicked
-        if (Elements != null)
+        if (Elements == null || Elements.Count == 0) return;
+
+        // Need to adjust for scale
+        float x = (float)point.X / Scale;
+        float y = (float)point.Y / Scale;
+
+        // Check in reverse order (top elements first)
+        for (int i = Elements.Count - 1; i >= 0; i--)
         {
-            // Need to adjust for scale
-            float x = (float)point.X / Scale;
-            float y = (float)point.Y / Scale;
+            var element = Elements[i];
 
-            foreach (var element in Elements)
+            if (element is TextElement textElement)
             {
-                if (element is TextElement textElement)
+                // Simple bounding box check
+                if (x >= textElement.X && x <= textElement.X + 100 &&
+                    y >= textElement.Y - 20 && y <= textElement.Y)
                 {
-                    // Simple bounding box check
-                    if (x >= textElement.X && x <= textElement.X + 100 &&
-                        y >= textElement.Y - 20 && y <= textElement.Y)
+                    // Find the OledElement that corresponds to this PreviewElement
+                    var oledElement = FindOledElementForPreviewElement(textElement);
+                    if (oledElement != null)
                     {
-                        // Find the OledElement that corresponds to this PreviewElement
-                        var oledElement = FindOledElementForPreviewElement(textElement);
-                        if (oledElement != null)
-                        {
-                            draggedElement = oledElement;
-                            SelectedElement = oledElement;
-                            return;
-                        }
-                    }
-                }
-                else if (element is BarElement barElement)
-                {
-                    if (x >= barElement.X && x <= barElement.X + barElement.Width &&
-                        y >= barElement.Y && y <= barElement.Y + barElement.Height)
-                    {
-                        var oledElement = FindOledElementForPreviewElement(barElement);
-                        if (oledElement != null)
-                        {
-                            draggedElement = oledElement;
-                            SelectedElement = oledElement;
-                            return;
-                        }
-                    }
-                }
-                else if (element is RectElement rectElement)
-                {
-                    if (x >= rectElement.X && x <= rectElement.X + rectElement.Width &&
-                        y >= rectElement.Y && y <= rectElement.Y + rectElement.Height)
-                    {
-                        var oledElement = FindOledElementForPreviewElement(rectElement);
-                        if (oledElement != null)
-                        {
-                            draggedElement = oledElement;
-                            SelectedElement = oledElement;
-                            return;
-                        }
-                    }
-                }
-                else if (element is LineElement lineElement)
-                {
-                    // Simplified line hit detection
-                    float lineLength = (float)Math.Sqrt(
-                        Math.Pow(lineElement.X2 - lineElement.X1, 2) +
-                        Math.Pow(lineElement.Y2 - lineElement.Y1, 2));
-
-                    // Check if point is close to the line
-                    float distance = DistancePointToLine(
-                        x, y,
-                        lineElement.X1, lineElement.Y1,
-                        lineElement.X2, lineElement.Y2);
-
-                    if (distance < 10) // 10 pixel tolerance
-                    {
-                        var oledElement = FindOledElementForPreviewElement(lineElement);
-                        if (oledElement != null)
-                        {
-                            draggedElement = oledElement;
-                            SelectedElement = oledElement;
-                            return;
-                        }
-                    }
-                }
-                else if (element is IconElement iconElement)
-                {
-                    if (x >= iconElement.X && x <= iconElement.X + 24 &&
-                        y >= iconElement.Y && y <= iconElement.Y + 24)
-                    {
-                        var oledElement = FindOledElementForPreviewElement(iconElement);
-                        if (oledElement != null)
-                        {
-                            draggedElement = oledElement;
-                            SelectedElement = oledElement;
-                            return;
-                        }
+                        draggedElement = oledElement;
+                        SelectedElement = oledElement;
+                        return;
                     }
                 }
             }
+            else if (element is BarElement barElement)
+            {
+                if (x >= barElement.X && x <= barElement.X + barElement.Width &&
+                    y >= barElement.Y && y <= barElement.Y + barElement.Height)
+                {
+                    var oledElement = FindOledElementForPreviewElement(barElement);
+                    if (oledElement != null)
+                    {
+                        draggedElement = oledElement;
+                        SelectedElement = oledElement;
+                        return;
+                    }
+                }
+            }
+            else if (element is RectElement rectElement)
+            {
+                if (x >= rectElement.X && x <= rectElement.X + rectElement.Width &&
+                    y >= rectElement.Y && y <= rectElement.Y + rectElement.Height)
+                {
+                    var oledElement = FindOledElementForPreviewElement(rectElement);
+                    if (oledElement != null)
+                    {
+                        draggedElement = oledElement;
+                        SelectedElement = oledElement;
+                        return;
+                    }
+                }
+            }
+            else if (element is LineElement lineElement)
+            {
+                // Simplified line hit detection
+                float distance = DistancePointToLine(
+                    x, y,
+                    lineElement.X1, lineElement.Y1,
+                    lineElement.X2, lineElement.Y2);
 
-            // No element was clicked, deselect
-            SelectedElement = null;
+                if (distance < 10) // 10 pixel tolerance
+                {
+                    var oledElement = FindOledElementForPreviewElement(lineElement);
+                    if (oledElement != null)
+                    {
+                        draggedElement = oledElement;
+                        SelectedElement = oledElement;
+                        return;
+                    }
+                }
+            }
+            else if (element is IconElement iconElement)
+            {
+                if (x >= iconElement.X && x <= iconElement.X + 24 &&
+                    y >= iconElement.Y && y <= iconElement.Y + 24)
+                {
+                    var oledElement = FindOledElementForPreviewElement(iconElement);
+                    if (oledElement != null)
+                    {
+                        draggedElement = oledElement;
+                        SelectedElement = oledElement;
+                        return;
+                    }
+                }
+            }
         }
+
+        // No element was clicked, deselect
+        SelectedElement = null;
     }
 
     private void OnDragInteraction(object sender, TouchEventArgs e)
     {
         if (!IsEditable || draggedElement == null) return;
 
-        var point = e.Touches[0];
-
-        // Calculate the delta from the start point
-        float deltaX = (float)(point.X - dragStartPoint.X) / Scale;
-        float deltaY = (float)(point.Y - dragStartPoint.Y) / Scale;
-
-        // Update the position of the dragged element
-        draggedElement.X += (int)deltaX;
-        draggedElement.Y += (int)deltaY;
-
-        // Keep element within bounds
-        draggedElement.X = Math.Max(0, Math.Min(Width - 10, draggedElement.X));
-        draggedElement.Y = Math.Max(0, Math.Min(Height - 10, draggedElement.Y));
-
-        // Update the start point for the next move
-        dragStartPoint = point;
-
-        // Notify property changes
-        var viewModel = BindingContext as OledConfigViewModel;
-        if (viewModel != null)
+        try
         {
-            // Update the view model properties to reflect the new position
-            viewModel.OnPropertyChanged(nameof(viewModel.SelectedElementX));
-            viewModel.OnPropertyChanged(nameof(viewModel.SelectedElementY));
+            var point = e.Touches[0];
 
-            // Update the markup
-            viewModel.UpdateMarkupFromElements();
+            // Calculate the delta from the start point
+            float deltaX = (float)(point.X - dragStartPoint.X) / Scale;
+            float deltaY = (float)(point.Y - dragStartPoint.Y) / Scale;
+
+            // Update the position of the dragged element
+            draggedElement.X += (int)deltaX;
+            draggedElement.Y += (int)deltaY;
+
+            // Keep element within bounds
+            draggedElement.X = Math.Max(0, Math.Min(Width - 10, draggedElement.X));
+            draggedElement.Y = Math.Max(0, Math.Min(Height - 10, draggedElement.Y));
+
+            // Update the start point for the next move
+            dragStartPoint = point;
+
+            // Notify property changes
+            var viewModel = BindingContext as PCPal.Configurator.ViewModels.OledConfigViewModel;
+            if (viewModel != null)
+            {
+                // Update the view model properties to reflect the new position
+                viewModel.OnPropertyChanged(nameof(viewModel.SelectedElementX));
+                viewModel.OnPropertyChanged(nameof(viewModel.SelectedElementY));
+
+                // Update the markup
+                viewModel.UpdateMarkupFromElements();
+            }
+
+            // Invalidate the canvas to redraw
+            Invalidate();
         }
-
-        // Invalidate the canvas to redraw
-        Invalidate();
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in drag interaction: {ex.Message}");
+        }
     }
 
     private void OnEndInteraction(object sender, TouchEventArgs e)
@@ -378,66 +381,73 @@ public class OledCanvasDrawable : IDrawable
 
     public void Draw(ICanvas canvas, RectF dirtyRect)
     {
-        float scale = _canvas.Scale;
-
-        // Clear background
-        canvas.FillColor = Colors.Black;
-        canvas.FillRectangle(0, 0, dirtyRect.Width, dirtyRect.Height);
-
-        // Draw grid if requested
-        if (_canvas.IsEditable && _canvas.Parent?.BindingContext is OledConfigViewModel viewModel && viewModel.ShowGridLines)
+        try
         {
-            canvas.StrokeColor = new Color(64, 64, 64, 64); // Semi-transparent gray
-            canvas.StrokeSize = 1;
+            float scale = _canvas.Scale;
 
-            // Draw vertical grid lines
-            for (int x = 0; x <= _canvas.Width; x += 10)
-            {
-                canvas.DrawLine(x * scale, 0, x * scale, _canvas.Height * scale);
-            }
+            // Clear background
+            canvas.FillColor = Colors.Black;
+            canvas.FillRectangle(0, 0, dirtyRect.Width, dirtyRect.Height);
 
-            // Draw horizontal grid lines
-            for (int y = 0; y <= _canvas.Height; y += 10)
+            // Draw grid if requested
+            if (_canvas.IsEditable && _canvas.Parent?.BindingContext is OledConfigViewModel viewModel && viewModel.ShowGridLines)
             {
-                canvas.DrawLine(0, y * scale, _canvas.Width * scale, y * scale);
-            }
-        }
+                canvas.StrokeColor = new Color(64, 64, 64, 64); // Semi-transparent gray
+                canvas.StrokeSize = 1;
 
-        // Draw elements
-        if (_canvas.Elements != null)
-        {
-            foreach (var element in _canvas.Elements)
-            {
-                // Check if this element is selected
-                bool isSelected = false;
-                if (_canvas.SelectedElement != null && _canvas.IsEditable)
+                // Draw vertical grid lines
+                for (int x = 0; x <= _canvas.Width; x += 10)
                 {
-                    if (element is TextElement textElement && _canvas.SelectedElement.Type == "text")
-                    {
-                        isSelected = _canvas.SelectedElement.X == textElement.X && _canvas.SelectedElement.Y == textElement.Y;
-                    }
-                    else if (element is BarElement barElement && _canvas.SelectedElement.Type == "bar")
-                    {
-                        isSelected = _canvas.SelectedElement.X == barElement.X && _canvas.SelectedElement.Y == barElement.Y;
-                    }
-                    else if (element is RectElement rectElement &&
-                             (_canvas.SelectedElement.Type == "rect" || _canvas.SelectedElement.Type == "box"))
-                    {
-                        isSelected = _canvas.SelectedElement.X == rectElement.X && _canvas.SelectedElement.Y == rectElement.Y;
-                    }
-                    else if (element is LineElement lineElement && _canvas.SelectedElement.Type == "line")
-                    {
-                        isSelected = _canvas.SelectedElement.X == lineElement.X1 && _canvas.SelectedElement.Y == lineElement.Y1;
-                    }
-                    else if (element is IconElement iconElement && _canvas.SelectedElement.Type == "icon")
-                    {
-                        isSelected = _canvas.SelectedElement.X == iconElement.X && _canvas.SelectedElement.Y == iconElement.Y;
-                    }
+                    canvas.DrawLine(x * scale, 0, x * scale, _canvas.Height * scale);
                 }
 
-                // Draw the element with appropriate styling
-                DrawElement(canvas, element, scale, isSelected);
+                // Draw horizontal grid lines
+                for (int y = 0; y <= _canvas.Height; y += 10)
+                {
+                    canvas.DrawLine(0, y * scale, _canvas.Width * scale, y * scale);
+                }
             }
+
+            // Draw elements
+            if (_canvas.Elements != null)
+            {
+                foreach (var element in _canvas.Elements)
+                {
+                    // Check if this element is selected
+                    bool isSelected = false;
+                    if (_canvas.SelectedElement != null && _canvas.IsEditable)
+                    {
+                        if (element is TextElement textElement && _canvas.SelectedElement.Type == "text")
+                        {
+                            isSelected = _canvas.SelectedElement.X == textElement.X && _canvas.SelectedElement.Y == textElement.Y;
+                        }
+                        else if (element is BarElement barElement && _canvas.SelectedElement.Type == "bar")
+                        {
+                            isSelected = _canvas.SelectedElement.X == barElement.X && _canvas.SelectedElement.Y == barElement.Y;
+                        }
+                        else if (element is RectElement rectElement &&
+                                 (_canvas.SelectedElement.Type == "rect" || _canvas.SelectedElement.Type == "box"))
+                        {
+                            isSelected = _canvas.SelectedElement.X == rectElement.X && _canvas.SelectedElement.Y == rectElement.Y;
+                        }
+                        else if (element is LineElement lineElement && _canvas.SelectedElement.Type == "line")
+                        {
+                            isSelected = _canvas.SelectedElement.X == lineElement.X1 && _canvas.SelectedElement.Y == lineElement.Y1;
+                        }
+                        else if (element is IconElement iconElement && _canvas.SelectedElement.Type == "icon")
+                        {
+                            isSelected = _canvas.SelectedElement.X == iconElement.X && _canvas.SelectedElement.Y == iconElement.Y;
+                        }
+                    }
+
+                    // Draw the element with appropriate styling
+                    DrawElement(canvas, element, scale, isSelected);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error drawing canvas: {ex.Message}");
         }
     }
 
