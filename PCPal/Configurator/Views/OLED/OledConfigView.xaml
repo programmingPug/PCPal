@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:PCPal.Configurator.ViewModels"
+             xmlns:oled="clr-namespace:PCPal.Configurator.Views.OLED"
+             x:Class="PCPal.Configurator.Views.OLED.OledConfigView"
+             x:DataType="viewmodels:OledConfigViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="20">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="5" Margin="0,0,0,15">
+            <Label Text="OLED Display Configuration" 
+                   FontSize="22" 
+                   FontAttributes="Bold" 
+                   TextColor="{StaticResource TextPrimary}" />
+            <Label Text="Design your custom OLED display layout with the visual editor or markup"
+                   FontSize="14"
+                   TextColor="{StaticResource TextSecondary}" />
+            <BoxView HeightRequest="1" Color="{StaticResource BorderColor}" Margin="0,10,0,0" />
+        </VerticalStackLayout>
+
+        <!-- Tabs -->
+        <HorizontalStackLayout Grid.Row="1" Spacing="0">
+            <Border BackgroundColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource Primary}}"
+                    StrokeShape="RoundRectangle 4,4,0,0"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource BorderColor}"
+                    Padding="20,10"
+                    WidthRequest="160">
+                <Label Text="Visual Editor" 
+                       TextColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter=White}"
+                       HorizontalOptions="Center" />
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SwitchToVisualEditorCommand}" />
+                </Border.GestureRecognizers>
+            </Border>
+
+            <Border BackgroundColor="{Binding IsMarkupEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource Primary}}"
+                    StrokeShape="RoundRectangle 4,4,0,0"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource BorderColor}"
+                    Padding="20,10"
+                    WidthRequest="160">
+                <Label Text="Markup Editor" 
+                       TextColor="{Binding IsMarkupEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter=White}"
+                       HorizontalOptions="Center" />
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SwitchToMarkupEditorCommand}" />
+                </Border.GestureRecognizers>
+            </Border>
+
+            <Border BackgroundColor="{Binding IsTemplatesSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource Primary}}"
+                    StrokeShape="RoundRectangle 4,4,0,0"
+                    StrokeThickness="1"
+                    Stroke="{StaticResource BorderColor}"
+                    Padding="20,10"
+                    WidthRequest="160">
+                <Label Text="Templates" 
+                       TextColor="{Binding IsTemplatesSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter=White}"
+                       HorizontalOptions="Center" />
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding SwitchToTemplatesCommand}" />
+                </Border.GestureRecognizers>
+            </Border>
+        </HorizontalStackLayout>
+
+        <!-- Content based on selected tab -->
+        <ContentView Grid.Row="2" Content="{Binding CurrentView}" />
+
+        <!-- Action Buttons -->
+        <HorizontalStackLayout Grid.Row="3" Spacing="15" HorizontalOptions="End" Margin="0,15,0,0">
+            <Button Text="Reset" 
+                    Style="{StaticResource OutlineButton}" 
+                    Command="{Binding ResetCommand}" />
+
+            <Button Text="Preview" 
+                    Style="{StaticResource OutlineButton}" 
+                    Command="{Binding PreviewCommand}" />
+
+            <Button Text="Save Configuration" 
+                    Style="{StaticResource PrimaryButton}" 
+                    Command="{Binding SaveConfigCommand}" />
+        </HorizontalStackLayout>
+
+    </Grid>
+</ContentView>

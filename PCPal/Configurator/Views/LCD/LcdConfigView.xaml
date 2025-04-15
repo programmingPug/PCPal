@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:PCPal.Configurator.ViewModels"
+             x:Class="PCPal.Configurator.Views.LCD.LcdConfigView"
+             x:DataType="viewmodels:LcdConfigViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="20">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="5" Margin="0,0,0,15">
+            <Label Text="1602 LCD Configuration" 
+                   FontSize="22" 
+                   FontAttributes="Bold" 
+                   TextColor="{StaticResource TextPrimary}" />
+            <Label Text="Configure what information will be displayed on your 16x2 character LCD"
+                   FontSize="14"
+                   TextColor="{StaticResource TextSecondary}" />
+            <BoxView HeightRequest="1" Color="{StaticResource BorderColor}" Margin="0,10,0,0" />
+        </VerticalStackLayout>
+
+        <!-- Configuration Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="20">
+
+                <!-- Line 1 Configuration -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="Line 1" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="15">
+                            <!-- Data Source -->
+                            <Label Grid.Row="0" Grid.Column="0" 
+                                   Text="Data Source:" 
+                                   VerticalOptions="Center" />
+
+                            <Picker Grid.Row="0" Grid.Column="1" 
+                                    ItemsSource="{Binding SensorOptions}" 
+                                    SelectedItem="{Binding Line1Selection}" 
+                                    Title="Select data source"
+                                    FontSize="14" />
+
+                            <!-- Prefix Text -->
+                            <Label Grid.Row="1" Grid.Column="0" 
+                                   Text="Prefix Text:" 
+                                   VerticalOptions="Center" />
+
+                            <Entry Grid.Row="1" Grid.Column="1" 
+                                   Text="{Binding Line1CustomText}" 
+                                   Placeholder="Text before value (e.g. 'CPU ')"
+                                   IsEnabled="{Binding IsLine1CustomTextEnabled}" />
+
+                            <!-- Suffix/Units -->
+                            <Label Grid.Row="2" Grid.Column="0" 
+                                   Text="Suffix/Units:" 
+                                   VerticalOptions="Center" />
+
+                            <Entry Grid.Row="2" Grid.Column="1" 
+                                   Text="{Binding Line1PostText}" 
+                                   Placeholder="Text after value (e.g. '%')"
+                                   IsEnabled="{Binding IsLine1PostTextEnabled}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Line 2 Configuration -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="Line 2" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="15">
+                            <!-- Data Source -->
+                            <Label Grid.Row="0" Grid.Column="0" 
+                                   Text="Data Source:" 
+                                   VerticalOptions="Center" />
+
+                            <Picker Grid.Row="0" Grid.Column="1" 
+                                    ItemsSource="{Binding SensorOptions}" 
+                                    SelectedItem="{Binding Line2Selection}" 
+                                    Title="Select data source"
+                                    FontSize="14" />
+
+                            <!-- Prefix Text -->
+                            <Label Grid.Row="1" Grid.Column="0" 
+                                   Text="Prefix Text:" 
+                                   VerticalOptions="Center" />
+
+                            <Entry Grid.Row="1" Grid.Column="1" 
+                                   Text="{Binding Line2CustomText}" 
+                                   Placeholder="Text before value (e.g. 'RAM ')"
+                                   IsEnabled="{Binding IsLine2CustomTextEnabled}" />
+
+                            <!-- Suffix/Units -->
+                            <Label Grid.Row="2" Grid.Column="0" 
+                                   Text="Suffix/Units:" 
+                                   VerticalOptions="Center" />
+
+                            <Entry Grid.Row="2" Grid.Column="1" 
+                                   Text="{Binding Line2PostText}" 
+                                   Placeholder="Text after value (e.g. 'GB')"
+                                   IsEnabled="{Binding IsLine2PostTextEnabled}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Live Preview -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="Live Preview" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Frame BackgroundColor="#00192f" 
+                               BorderColor="#222222" 
+                               CornerRadius="4" 
+                               Padding="0" 
+                               HorizontalOptions="Center">
+
+                            <Grid RowDefinitions="Auto,Auto" WidthRequest="580" HeightRequest="160">
+                                <Rectangle Grid.Row="0" 
+                                           Fill="#001422" 
+                                           HeightRequest="40" 
+                                           Margin="20,20,20,10" />
+
+                                <Label Grid.Row="0" 
+                                       Text="{Binding Line1Preview}" 
+                                       FontFamily="Consolas" 
+                                       FontSize="28" 
+                                       TextColor="#00ff00" 
+                                       HorizontalOptions="Start" 
+                                       VerticalOptions="Center" 
+                                       Margin="25,20,0,10" />
+
+                                <Rectangle Grid.Row="1" 
+                                           Fill="#001422" 
+                                           HeightRequest="40" 
+                                           Margin="20,10,20,20" />
+
+                                <Label Grid.Row="1" 
+                                       Text="{Binding Line2Preview}" 
+                                       FontFamily="Consolas" 
+                                       FontSize="28" 
+                                       TextColor="#00ff00" 
+                                       HorizontalOptions="Start" 
+                                       VerticalOptions="Center" 
+                                       Margin="25,10,0,20" />
+                            </Grid>
+                        </Frame>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Action Buttons -->
+        <HorizontalStackLayout Grid.Row="2" Spacing="15" HorizontalOptions="End" Margin="0,15,0,0">
+            <Button Text="Test Connection" 
+                    Style="{StaticResource OutlineButton}" 
+                    Command="{Binding TestConnectionCommand}" />
+
+            <Button Text="Save Configuration" 
+                    Style="{StaticResource PrimaryButton}" 
+                    Command="{Binding SaveConfigCommand}" />
+        </HorizontalStackLayout>
+
+    </Grid>
+</ContentView>

@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:PCPal.Configurator.ViewModels"
+             x:Class="PCPal.Configurator.Views.HelpView"
+             x:DataType="viewmodels:HelpViewModel">
+
+    <Grid RowDefinitions="Auto,*" Padding="20">
+
+        <!-- Header -->
+        <VerticalStackLayout Grid.Row="0" Spacing="5" Margin="0,0,0,15">
+            <Label Text="Help &amp; Documentation" 
+                   FontSize="22" 
+                   FontAttributes="Bold" 
+                   TextColor="{StaticResource TextPrimary}" />
+            <Label Text="Learn how to use PCPal Configurator and get the most out of your hardware monitoring displays"
+                   FontSize="14"
+                   TextColor="{StaticResource TextSecondary}" />
+            <BoxView HeightRequest="1" Color="{StaticResource BorderColor}" Margin="0,10,0,0" />
+        </VerticalStackLayout>
+
+        <!-- Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="20">
+
+                <!-- Getting Started Section -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Getting Started" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Label Text="PCPal is a system monitoring tool that displays real-time hardware information on external display devices connected to your computer. The PCPal Configurator lets you customize what information is shown and how it appears."
+                               TextColor="{StaticResource TextSecondary}"
+                               TextType="Html" />
+
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="10">
+                            <Label Grid.Row="0" Grid.Column="0" Text="1." FontAttributes="Bold" />
+                            <Label Grid.Row="0" Grid.Column="1" 
+                                   Text="Start by selecting the type of display you have connected (1602 LCD, TFT, or OLED)"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="2." FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="1" 
+                                   Text="Configure the display layout and choose which system metrics to show"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Label Grid.Row="2" Grid.Column="0" Text="3." FontAttributes="Bold" />
+                            <Label Grid.Row="2" Grid.Column="1" 
+                                   Text="Save your configuration and test the connection to your display"
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- LCD Help Section -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="1602 LCD Configuration" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Label Text="The 1602 LCD display has two lines of 16 characters each. You can configure what information is shown on each line."
+                               TextColor="{StaticResource TextSecondary}" />
+
+                        <Label Text="For each line, you can:" FontAttributes="Bold" Margin="0,10,0,5" />
+
+                        <VerticalStackLayout Spacing="5" Margin="20,0,0,0">
+                            <Label Text="• Select a data source (CPU load, temperature, memory usage, etc.)"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="• Add prefix text that appears before the value"
+                                   TextColor="{StaticResource TextSecondary}" />
+                            <Label Text="• Add suffix/unit text that appears after the value"
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </VerticalStackLayout>
+
+                        <Label Text="Example: Setting prefix to 'CPU' and suffix to '%' with the CPU load data source would display: 'CPU 85%'"
+                               TextColor="{StaticResource TextSecondary}" 
+                               Margin="0,10,0,0" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- OLED Help Section -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="OLED Display Configuration" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Label Text="The OLED display offers a graphical interface with 256x64 pixels. You can create custom layouts using the visual editor or markup language."
+                               TextColor="{StaticResource TextSecondary}" />
+
+                        <Label Text="Visual Editor" FontAttributes="Bold" Margin="0,10,0,5" />
+                        <Label Text="Drag and drop elements onto the canvas and customize their properties. Available elements include text, progress bars, rectangles, lines, and icons."
+                               TextColor="{StaticResource TextSecondary}" />
+
+                        <Label Text="Markup Editor" FontAttributes="Bold" Margin="0,10,0,5" />
+                        <Label Text="For advanced users, you can write markup code directly. The markup language supports the following elements:"
+                               TextColor="{StaticResource TextSecondary}" />
+
+                        <Frame BackgroundColor="#f8f9fa" Padding="10" CornerRadius="4" Margin="0,5,0,5">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="&lt;text x=0 y=10 size=1&gt;Hello World&lt;/text&gt;"
+                                       FontFamily="Consolas"
+                                       FontSize="13" />
+
+                                <Label Text="&lt;bar x=0 y=20 w=100 h=8 val=75 /&gt;"
+                                       FontFamily="Consolas"
+                                       FontSize="13" />
+
+                                <Label Text="&lt;rect x=0 y=0 w=20 h=10 /&gt;"
+                                       FontFamily="Consolas"
+                                       FontSize="13" />
+
+                                <Label Text="&lt;box x=0 y=0 w=20 h=10 /&gt;"
+                                       FontFamily="Consolas"
+                                       FontSize="13" />
+
+                                <Label Text="&lt;line x1=0 y1=0 x2=20 y2=20 /&gt;"
+                                       FontFamily="Consolas"
+                                       FontSize="13" />
+
+                                <Label Text="&lt;icon x=0 y=0 name=cpu /&gt;"
+                                       FontFamily="Consolas"
+                                       FontSize="13" />
+                            </VerticalStackLayout>
+                        </Frame>
+
+                        <Label Text="Sensor Variables" FontAttributes="Bold" Margin="0,10,0,5" />
+                        <Label Text="You can include live sensor data using variables in the format {SensorName}. For example:"
+                               TextColor="{StaticResource TextSecondary}" />
+
+                        <Frame BackgroundColor="#f8f9fa" Padding="10" CornerRadius="4" Margin="0,5,0,5">
+                            <Label Text="&lt;text x=0 y=30 size=1&gt;CPU: {CPU_Core_i7_Total_Load}%&lt;/text&gt;"
+                                   FontFamily="Consolas"
+                                   FontSize="13" />
+                        </Frame>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Troubleshooting Section -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Troubleshooting" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="15" RowSpacing="15">
+                            <Label Grid.Row="0" Grid.Column="0" Text="Display not detected:" FontAttributes="Bold" />
+                            <Label Grid.Row="0" Grid.Column="1" 
+                                   Text="Ensure the display is properly connected via USB and that the PCPal Service is running."
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Label Grid.Row="1" Grid.Column="0" Text="Sensor data not showing:" FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="1" 
+                                   Text="Some hardware may not expose certain sensors. Try selecting different sensors or restart the application."
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Label Grid.Row="2" Grid.Column="0" Text="Text not displaying correctly:" FontAttributes="Bold" />
+                            <Label Grid.Row="2" Grid.Column="1" 
+                                   Text="For LCD displays, ensure text doesn't exceed 16 characters per line. For OLED, check that elements are within the 256x64 pixel boundary."
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Label Grid.Row="3" Grid.Column="0" Text="Service not working:" FontAttributes="Bold" />
+                            <Label Grid.Row="3" Grid.Column="1" 
+                                   Text="Check Windows Services to ensure the PCPal Service is running. If not, try restarting it or reinstalling."
+                                   TextColor="{StaticResource TextSecondary}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Additional Resources Section -->
+                <Border Style="{StaticResource CardStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Additional Resources" 
+                               FontSize="18" 
+                               FontAttributes="Bold" 
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Project Repository:" FontAttributes="Bold" />
+                            <Label Text="github.com/user/pcpal" 
+                                   TextColor="{StaticResource Primary}"
+                                   TextDecorations="Underline" />
+
+                            <Label Text="Documentation:" FontAttributes="Bold" Margin="0,10,0,0" />
+                            <Label Text="wiki.github.com/user/pcpal/documentation" 
+                                   TextColor="{StaticResource Primary}"
+                                   TextDecorations="Underline" />
+
+                            <Label Text="Report Issues:" FontAttributes="Bold" Margin="0,10,0,0" />
+                            <Label Text="github.com/user/pcpal/issues" 
+                                   TextColor="{StaticResource Primary}"
+                                   TextDecorations="Underline" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Version Information -->
+                <Label Text="PCPal Configurator v1.0.0 | © 2025" 
+                       HorizontalOptions="Center"
+                       TextColor="{StaticResource TextSecondary}"
+                       FontSize="12"
+                       Margin="0,0,0,20" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentView>

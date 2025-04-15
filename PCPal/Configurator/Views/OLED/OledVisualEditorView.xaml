@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:PCPal.Configurator.ViewModels"
+             xmlns:controls="clr-namespace:PCPal.Configurator.Controls"
+             x:Class="PCPal.Configurator.Views.OLED.OledVisualEditorView">
+
+    <Grid ColumnDefinitions="*,250" RowDefinitions="*,Auto" Margin="0,15,0,0">
+
+        <!-- Main Editor Area -->
+        <Grid Grid.Column="0" Grid.Row="0" BackgroundColor="Black">
+            <controls:OledPreviewCanvas x:Name="EditorCanvas"
+                                     Elements="{Binding OledElements}"
+                                     Width="256"
+                                     Height="64"
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Scale="3"
+                                     SelectedElement="{Binding SelectedElement}"
+                                     IsEditable="True" />
+
+            <!-- Show grid lines option -->
+            <CheckBox IsChecked="{Binding ShowGridLines}" 
+                      HorizontalOptions="Start" 
+                      VerticalOptions="Start" 
+                      Margin="5"
+                      Color="White" />
+            <Label Text="Show Grid" 
+                   TextColor="White" 
+                   HorizontalOptions="Start" 
+                   VerticalOptions="Start" 
+                   Margin="35,10,0,0"
+                   FontSize="12" />
+
+            <!-- Zoom controls -->
+            <HorizontalStackLayout HorizontalOptions="End" VerticalOptions="Start" Margin="0,10,10,0">
+                <Button Text="-" 
+                        Command="{Binding ZoomOutCommand}" 
+                        WidthRequest="40" 
+                        HeightRequest="40" 
+                        FontSize="16" 
+                        Padding="0" />
+
+                <Label Text="{Binding ZoomLevel, StringFormat='{0}x'}" 
+                       TextColor="White" 
+                       VerticalOptions="Center" 
+                       Margin="10,0" 
+                       FontSize="14" />
+
+                <Button Text="+" 
+                        Command="{Binding ZoomInCommand}" 
+                        WidthRequest="40" 
+                        HeightRequest="40" 
+                        FontSize="16" 
+                        Padding="0" />
+            </HorizontalStackLayout>
+        </Grid>
+
+        <!-- Component Palette -->
+        <Border Grid.Column="1" 
+                Grid.Row="0" 
+                Style="{StaticResource CardStyle}" 
+                Margin="15,0,0,0">
+            <VerticalStackLayout Spacing="15">
+                <Label Text="Components" 
+                       FontSize="18" 
+                       FontAttributes="Bold" />
+
+                <!-- Component buttons -->
+                <Button Text="Add Text" 
+                        Command="{Binding AddElementCommand}" 
+                        CommandParameter="text" 
+                        HorizontalOptions="Fill" />
+
+                <Button Text="Add Progress Bar" 
+                        Command="{Binding AddElementCommand}" 
+                        CommandParameter="bar" 
+                        HorizontalOptions="Fill" />
+
+                <Button Text="Add Rectangle" 
+                        Command="{Binding AddElementCommand}" 
+                        CommandParameter="rect" 
+                        HorizontalOptions="Fill" />
+
+                <Button Text="Add Filled Box" 
+                        Command="{Binding AddElementCommand}" 
+                        CommandParameter="box" 
+                        HorizontalOptions="Fill" />
+
+                <Button Text="Add Line" 
+                        Command="{Binding AddElementCommand}" 
+                        CommandParameter="line" 
+                        HorizontalOptions="Fill" />
+
+                <Button Text="Add Icon" 
+                        Command="{Binding AddElementCommand}" 
+                        CommandParameter="icon" 
+                        HorizontalOptions="Fill" />
+
+                <!-- Selected element properties -->
+                <BoxView HeightRequest="1" 
+                         Color="{StaticResource BorderColor}" 
+                         Margin="0,10" />
+
+                <Label Text="Element Properties" 
+                       FontSize="16" 
+                       FontAttributes="Bold" />
+
+                <!-- Dynamic properties display based on selected element type -->
+                <VerticalStackLayout x:Name="ElementPropertiesPanel" 
+                                   Spacing="10" 
+                                   IsVisible="{Binding HasSelectedElement}">
+
+                    <!-- Common position properties -->
+                    <Grid ColumnDefinitions="Auto,*,Auto,*" RowDefinitions="Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Column="0" Text="X:" VerticalOptions="Center" />
+                        <Entry Grid.Column="1" 
+                               Text="{Binding SelectedElementX}" 
+                               Keyboard="Numeric" 
+                               HorizontalTextAlignment="End" />
+
+                        <Label Grid.Column="2" Text="Y:" VerticalOptions="Center" />
+                        <Entry Grid.Column="3" 
+                               Text="{Binding SelectedElementY}" 
+                               Keyboard="Numeric" 
+                               HorizontalTextAlignment="End" />
+                    </Grid>
+
+                    <!-- Type-specific properties - shown/hidden based on element type -->
+
+                    <!-- Text Properties -->
+                    <VerticalStackLayout IsVisible="{Binding IsTextElementSelected}" Spacing="10">
+                        <Label Text="Text Content:" />
+                        <Entry Text="{Binding SelectedElementText}" />
+
+                        <Label Text="Font Size:" />
+                        <Picker SelectedItem="{Binding SelectedElementSize}" 
+                                ItemsSource="{Binding FontSizes}" />
+                    </VerticalStackLayout>
+
+                    <!-- Bar Properties -->
+                    <VerticalStackLayout IsVisible="{Binding IsBarElementSelected}" Spacing="10">
+                        <Label Text="Width:" />
+                        <Entry Text="{Binding SelectedElementWidth}" Keyboard="Numeric" />
+
+                        <Label Text="Height:" />
+                        <Entry Text="{Binding SelectedElementHeight}" Keyboard="Numeric" />
+
+                        <Label Text="Value (0-100):" />
+                        <HorizontalStackLayout>
+                            <Slider Value="{Binding SelectedElementValue}" 
+                                    Maximum="100" 
+                                    Minimum="0" 
+                                    WidthRequest="150" />
+                            <Label Text="{Binding SelectedElementValue, StringFormat='{0:F0}'}" 
+                                   VerticalOptions="Center" 
+                                   Margin="10,0,0,0" />
+                        </HorizontalStackLayout>
+
+                        <Label Text="Link to Sensor:" />
+                        <Picker SelectedItem="{Binding SelectedElementSensor}" 
+                                ItemsSource="{Binding AvailableSensors}" />
+                    </VerticalStackLayout>
+
+                    <!-- Rectangle/Box Properties -->
+                    <VerticalStackLayout IsVisible="{Binding IsRectangleElementSelected}" Spacing="10">
+                        <Label Text="Width:" />
+                        <Entry Text="{Binding SelectedElementWidth}" Keyboard="Numeric" />
+
+                        <Label Text="Height:" />
+                        <Entry Text="{Binding SelectedElementHeight}" Keyboard="Numeric" />
+                    </VerticalStackLayout>
+
+                    <!-- Line Properties -->
+                    <VerticalStackLayout IsVisible="{Binding IsLineElementSelected}" Spacing="10">
+                        <Label Text="End Point X:" />
+                        <Entry Text="{Binding SelectedElementX2}" Keyboard="Numeric" />
+
+                        <Label Text="End Point Y:" />
+                        <Entry Text="{Binding SelectedElementY2}" Keyboard="Numeric" />
+                    </VerticalStackLayout>
+
+                    <!-- Icon Properties -->
+                    <VerticalStackLayout IsVisible="{Binding IsIconElementSelected}" Spacing="10">
+                        <Label Text="Icon Name:" />
+                        <HorizontalStackLayout>
+                            <Entry Text="{Binding SelectedElementIconName}" WidthRequest="150" />
+                            <Button Text="Browse..." 
+                                    Command="{Binding BrowseIconsCommand}" 
+                                    Margin="5,0,0,0" />
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+
+                    <!-- Delete button -->
+                    <Button Text="Delete Element" 
+                            Command="{Binding DeleteElementCommand}" 
+                            BackgroundColor="{StaticResource Error}" 
+                            TextColor="White" 
+                            Margin="0,10,0,0" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Sensor Selector -->
+        <Border Grid.Column="0" 
+                Grid.ColumnSpan="2" 
+                Grid.Row="1" 
+                Style="{StaticResource CardStyle}" 
+                Margin="0,15,0,0">
+            <VerticalStackLayout Spacing="15">
+                <Label Text="Available Sensors" 
+                       FontSize="18" 
+                       FontAttributes="Bold" />
+
+                <!-- Sensor category tabs -->
+                <HorizontalStackLayout Spacing="10" Margin="0,0,0,10">
+                    <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                        <HorizontalStackLayout Spacing="10">
+                            <Button Text="CPU" 
+                                    Command="{Binding FilterSensorsCommand}" 
+                                    CommandParameter="Cpu" 
+                                    CornerRadius="15" 
+                                    Padding="15,0" 
+                                    MinimumWidthRequest="100" 
+                                    BackgroundColor="{Binding CurrentSensorFilter, Converter={StaticResource StringMatchConverter}, ConverterParameter='Cpu'}" />
+
+                            <Button Text="GPU" 
+                                    Command="{Binding FilterSensorsCommand}" 
+                                    CommandParameter="Gpu" 
+                                    CornerRadius="15" 
+                                    Padding="15,0" 
+                                    MinimumWidthRequest="100" 
+                                    BackgroundColor="{Binding CurrentSensorFilter, Converter={StaticResource StringMatchConverter}, ConverterParameter='Gpu'}" />
+
+                            <Button Text="Memory" 
+                                    Command="{Binding FilterSensorsCommand}" 
+                                    CommandParameter="Memory" 
+                                    CornerRadius="15" 
+                                    Padding="15,0" 
+                                    MinimumWidthRequest="100" 
+                                    BackgroundColor="{Binding CurrentSensorFilter, Converter={StaticResource StringMatchConverter}, ConverterParameter='Memory'}" />
+
+                            <Button Text="Storage" 
+                                    Command="{Binding FilterSensorsCommand}" 
+                                    CommandParameter="Storage" 
+                                    CornerRadius="15" 
+                                    Padding="15,0" 
+                                    MinimumWidthRequest="100" 
+                                    BackgroundColor="{Binding CurrentSensorFilter, Converter={StaticResource StringMatchConverter}, ConverterParameter='Storage'}" />
+
+                            <Button Text="All" 
+                                    Command="{Binding FilterSensorsCommand}" 
+                                    CommandParameter="All" 
+                                    CornerRadius="15" 
+                                    Padding="15,0" 
+                                    MinimumWidthRequest="100" 
+                                    BackgroundColor="{Binding CurrentSensorFilter, Converter={StaticResource StringMatchConverter}, ConverterParameter='All'}" />
+                        </HorizontalStackLayout>
+                    </ScrollView>
+                </HorizontalStackLayout>
+
+                <!-- Sensor list -->
+                <CollectionView ItemsSource="{Binding FilteredSensors}" 
+                                HeightRequest="150">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="*,Auto,Auto" 
+                                  Padding="10" 
+                                  BackgroundColor="{StaticResource Surface}">
+                                <Label Grid.Column="0" 
+                                       Text="{Binding DisplayName}" 
+                                       VerticalOptions="Center" />
+
+                                <Label Grid.Column="1" 
+                                       Text="{Binding FullValueText}" 
+                                       VerticalOptions="Center" 
+                                       Margin="10,0" />
+
+                                <Button Grid.Column="2" 
+                                        Text="Add to Display" 
+                                        CommandParameter="{Binding Id}" 
+                                        Command="{Binding Path=AddSensorToDisplayCommand, Source={RelativeSource AncestorType={x:Type viewmodels:OledConfigViewModel}}}" />
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentView>

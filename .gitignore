@@ -5,3 +5,7 @@
 /PCPalService/bin
 /PCPalService/obj
 PCPalService/service_log.txt
+/PCPal/.vs
+/PCPal/Configurator/obj
+/PCPal/Core/bin
+/PCPal/Core/obj

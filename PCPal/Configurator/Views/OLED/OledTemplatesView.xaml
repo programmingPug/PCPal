@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:PCPal.Configurator.ViewModels"
+             xmlns:controls="clr-namespace:PCPal.Configurator.Controls"
+             x:Class="PCPal.Configurator.Views.OLED.OledTemplatesView">
+
+    <Grid Margin="0,15,0,0">
+        <ScrollView>
+            <VerticalStackLayout Spacing="20">
+                <Label Text="Select a Template to Start With" 
+                       FontSize="18" 
+                       FontAttributes="Bold" />
+
+                <!-- Template Gallery -->
+                <CollectionView ItemsSource="{Binding TemplateList}" 
+                                SelectionMode="Single" 
+                                SelectedItem="{Binding SelectedTemplate}">
+                    <CollectionView.ItemsLayout>
+                        <GridItemsLayout Orientation="Vertical" 
+                                         Span="2" 
+                                         VerticalItemSpacing="15" 
+                                         HorizontalItemSpacing="15" />
+                    </CollectionView.ItemsLayout>
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardStyle}" 
+                                    BackgroundColor="{Binding IsSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource PrimaryLight}}">
+                                <Grid RowDefinitions="Auto,Auto,*" Padding="0">
+                                    <Label Text="{Binding Name}" 
+                                           FontSize="16" 
+                                           FontAttributes="Bold" 
+                                           Margin="0,0,0,10" />
+
+                                    <Grid Grid.Row="1" BackgroundColor="Black" HeightRequest="100">
+                                        <controls:OledPreviewCanvas Elements="{Binding PreviewElements}"
+                                                              Width="256"
+                                                              Height="64"
+                                                              HorizontalOptions="Center"
+                                                              VerticalOptions="Center"
+                                                              Scale="1.5"
+                                                              IsEditable="False" />
+                                    </Grid>
+
+                                    <Label Grid.Row="2" 
+                                           Text="{Binding Description}" 
+                                           FontSize="12" 
+                                           Margin="0,10,0,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <!-- Template Details -->
+                <Border Style="{StaticResource CardStyle}" 
+                        IsVisible="{Binding HasSelectedTemplate}">
+                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                        <Label Text="{Binding SelectedTemplate.Name}" 
+                               FontSize="18" 
+                               FontAttributes="Bold" />
+
+                        <Label Grid.Row="1" 
+                               Text="{Binding SelectedTemplate.Description}" 
+                               FontSize="14" 
+                               TextColor="{StaticResource TextSecondary}" 
+                               Margin="0,5,0,15" />
+
+                        <Label Grid.Row="2" 
+                               Text="This template will replace your current design. You can customize it after applying." 
+                               FontSize="12" 
+                               TextColor="{StaticResource Warning}" />
+
+                        <Button Grid.Column="1" 
+                                Grid.RowSpan="3" 
+                                Text="Use This Template" 
+                                Style="{StaticResource PrimaryButton}" 
+                                Command="{Binding UseTemplateCommand}" 
+                                VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+                <!-- Custom Templates Section -->
+                <BoxView HeightRequest="1" Color="{StaticResource BorderColor}" />
+
+                <Label Text="Your Custom Templates" 
+                       FontSize="18" 
+                       FontAttributes="Bold" />
+
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                    <Entry Placeholder="Save current design as template..." 
+                           Text="{Binding NewTemplateName}" />
+
+                    <Button Grid.Column="1" 
+                            Text="Save" 
+                            Style="{StaticResource PrimaryButton}" 
+                            Command="{Binding SaveAsTemplateCommand}" />
+
+                    <CollectionView Grid.Row="1" 
+                                    Grid.ColumnSpan="2" 
+                                    ItemsSource="{Binding CustomTemplates}" 
+                                    EmptyView="You haven't saved any custom templates yet." 
+                                    Margin="0,15,0,0">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto,Auto" Padding="10">
+                                    <Label Text="{Binding Name}" 
+                                           VerticalOptions="Center" />
+
+                                    <Button Grid.Column="1" 
+                                            Text="Apply" 
+                                            Style="{StaticResource OutlineButton}" 
+                                            Command="{Binding Path=UseCustomTemplateCommand, Source={RelativeSource AncestorType={x:Type viewmodels:OledConfigViewModel}}}" 
+                                            CommandParameter="{Binding .}" 
+                                            Margin="0,0,10,0" />
+
+                                    <Button Grid.Column="2" 
+                                            Text="Delete" 
+                                            Style="{StaticResource TextButton}" 
+                                            TextColor="{StaticResource Error}" 
+                                            Command="{Binding Path=DeleteCustomTemplateCommand, Source={RelativeSource AncestorType={x:Type viewmodels:OledConfigViewModel}}}" 
+                                            CommandParameter="{Binding .}" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentView>

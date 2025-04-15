@@ -1,0 +1,69 @@
+﻿<?xml version = "1.0" encoding = "UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:PCPal.Configurator"
+             x:Class="PCPal.Configurator.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Converters.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Application Colors -->
+            <Color x:Key="Primary">#1E88E5</Color>
+            <Color x:Key="PrimaryDark">#1565C0</Color>
+            <Color x:Key="PrimaryLight">#E3F2FD</Color>
+            <Color x:Key="Secondary">#CFD8DC</Color>
+            <Color x:Key="Accent">#03A9F4</Color>
+            <Color x:Key="Background">#F4F6F8</Color>
+            <Color x:Key="Surface">#FFFFFF</Color>
+            <Color x:Key="TextPrimary">#333333</Color>
+            <Color x:Key="TextSecondary">#555555</Color>
+            <Color x:Key="BorderColor">#E1E4E8</Color>
+            <Color x:Key="Success">#4CAF50</Color>
+            <Color x:Key="Error">#F44336</Color>
+            <Color x:Key="Warning">#FF9800</Color>
+
+            <!-- Card Style -->
+            <Style x:Key="CardStyle" TargetType="Border">
+                <Setter Property="BackgroundColor" Value="{StaticResource Surface}" />
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="StrokeShape" Value="RoundRectangle 8,8,8,8" />
+                <Setter Property="Stroke" Value="{StaticResource BorderColor}" />
+                <Setter Property="StrokeThickness" Value="1" />
+                <Setter Property="Shadow">
+                    <Shadow Brush="#22000000"
+                            Offset="0,2"
+                            Radius="4" />
+                </Setter>
+            </Style>
+
+            <!-- Button Styles -->
+            <Style x:Key="PrimaryButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
+                <Setter Property="TextColor" Value="White" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+
+            <Style x:Key="OutlineButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="BorderColor" Value="{StaticResource Primary}" />
+                <Setter Property="BorderWidth" Value="1" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+
+            <Style x:Key="TextButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="{StaticResource Primary}" />
+                <Setter Property="Padding" Value="10,5" />
+                <Setter Property="FontSize" Value="14" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
