@@ -5,6 +5,8 @@ using PCPal.Configurator.Views.LCD;
 using PCPal.Configurator.Views.OLED;
 using PCPal.Configurator.Views.TFT;
 using System.ComponentModel;
+using PCPal.Configurator.Models;
+using System.Collections.ObjectModel;
 
 namespace PCPal.Configurator;
 
@@ -17,6 +19,7 @@ public partial class AppShell : Shell, INotifyPropertyChanged
 
     private readonly IServiceProvider _serviceProvider;
 
+ 
     public bool IsConnected
     {
         get => _isConnected;
@@ -58,6 +61,7 @@ public partial class AppShell : Shell, INotifyPropertyChanged
 
     public AppShell()
     {
+
         InitializeComponent();
 
         _serviceProvider = IPlatformApplication.Current?.Services;
@@ -70,6 +74,14 @@ public partial class AppShell : Shell, INotifyPropertyChanged
 
         // Start with LCD view
         NavMenu.SelectedItem = "1602 LCD Display";
+
+        // Just manually load the view
+        var lcdView = _serviceProvider?.GetService<LcdConfigView>();
+        if (lcdView != null)
+        {
+            ContentContainer.Content = lcdView;
+        }
+
 
         // Start connection monitoring in the background
         StartConnectivityMonitoring();
@@ -91,6 +103,8 @@ public partial class AppShell : Shell, INotifyPropertyChanged
     {
         if (e.CurrentSelection.FirstOrDefault() is string selection)
         {
+           
+
             ContentView view = selection switch
             {
                 "1602 LCD Display" => _serviceProvider?.GetService<LcdConfigView>(),

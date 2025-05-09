@@ -27,10 +27,7 @@
                 </Border.StrokeShape>
 
                 <VerticalStackLayout Spacing="20" HorizontalOptions="Center" Padding="30">
-                    <Image Source="coming_soon.png" 
-                           WidthRequest="150" 
-                           HeightRequest="150" 
-                           HorizontalOptions="Center" />
+                    
 
                     <Label Text="TFT Display Support Coming Soon!" 
                            FontSize="24" 
@@ -65,12 +62,7 @@
                                HorizontalOptions="Start" />
                     </VerticalStackLayout>
 
-                    <Button Text="Notify Me When Available" 
-                            Command="{Binding NotifyCommand}"
-                            BackgroundColor="{StaticResource Primary}"
-                            TextColor="White"
-                            HorizontalOptions="Center"
-                            Margin="0,10,0,0" />
+                    
                 </VerticalStackLayout>
             </Border>
 

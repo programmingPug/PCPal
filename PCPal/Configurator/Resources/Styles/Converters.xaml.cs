@@ -76,38 +76,24 @@ public class ConnectionStatusColorConverter : IValueConverter
 // Converts a string to a color based on matching
 public class StringMatchConverter : IValueConverter
 {
+    // Default navigation item
+    private const string DefaultNavItem = "1602 LCD Display";
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         // For matching menu items
-        if (value is string currentValue && parameter is string targetValue)
+        if (parameter is string targetValue)
         {
-            if (currentValue == targetValue)
+            string currentValue = value as string;
+
+            // Either it's explicitly selected, or it's the default item and nothing is selected yet
+            if (currentValue == targetValue || (currentValue == null && targetValue == DefaultNavItem))
             {
-                // Default to background coloring
-                Color returnColor = Application.Current.Resources["PrimaryLight"] as Color ?? Colors.LightBlue;
-
-                // Check for additional parameter context
-                if (targetValue.EndsWith(":TextColor"))
-                {
-                    // Strip the ":TextColor" suffix before comparison
-                    string strippedTarget = targetValue.Substring(0, targetValue.Length - 10);
-                    if (currentValue == strippedTarget)
-                    {
-                        return Application.Current.Resources["Primary"] as Color ?? Colors.Black;
-                    }
-                }
-
-                return returnColor;
+                return Application.Current.Resources["PrimaryLight"] as Color ?? Colors.LightBlue;
             }
         }
 
-        // Return default values
-        if (parameter is string param && param == "TextColor")
-        {
-            return Application.Current.Resources["TextSecondary"] as Color ?? Colors.Gray;
-        }
-
-        // Default background is transparent
+        // Return transparent for non-selected items
         return Colors.Transparent;
     }
 
@@ -283,18 +269,23 @@ public class RelativeTimeConverter : IValueConverter
 // Add this new converter for text color specifically
 public class StringMatchTextConverter : IValueConverter
 {
+    // Default navigation item
+    private const string DefaultNavItem = "1602 LCD Display";
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is string currentValue && parameter is string targetValue)
+        if (parameter is string targetValue)
         {
-            if (currentValue == targetValue)
+            string currentValue = value as string;
+
+            // Either it's explicitly selected, or it's the default item and nothing is selected yet
+            if (currentValue == targetValue || (currentValue == null && targetValue == DefaultNavItem))
             {
-                // Return text color for selected item
                 return Application.Current.Resources["Primary"] as Color ?? Colors.Blue;
             }
         }
 
-        // Return default text color
+        // Return default text color for non-selected items
         return Application.Current.Resources["TextSecondary"] as Color ?? Colors.Gray;
     }
 

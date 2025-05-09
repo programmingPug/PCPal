@@ -106,8 +106,7 @@ public class SettingsViewModel : BaseViewModel
     public ICommand StartServiceCommand { get; }
     public ICommand StopServiceCommand { get; }
     public ICommand RestartServiceCommand { get; }
-    public ICommand CheckForUpdatesCommand { get; }
-
+    
     public SettingsViewModel(IConfigurationService configService, ISerialPortService serialPortService)
     {
         Title = "Settings";
@@ -142,8 +141,7 @@ public class SettingsViewModel : BaseViewModel
         StartServiceCommand = new Command(async () => await StartServiceAsync());
         StopServiceCommand = new Command(async () => await StopServiceAsync());
         RestartServiceCommand = new Command(async () => await RestartServiceAsync());
-        CheckForUpdatesCommand = new Command(async () => await CheckForUpdatesAsync());
-
+        
         // Subscribe to serial port connection changes
         _serialPortService.ConnectionStatusChanged += OnConnectionStatusChanged;
     }
@@ -418,19 +416,6 @@ public class SettingsViewModel : BaseViewModel
         catch (Exception ex)
         {
             await Shell.Current.DisplayAlert("Error", $"Failed to restart service: {ex.Message}", "OK");
-        }
-    }
-
-    private async Task CheckForUpdatesAsync()
-    {
-        try
-        {
-            await Shell.Current.DisplayAlert("Check for Updates",
-                "You are currently running the latest version (1.0.0).", "OK");
-        }
-        catch (Exception ex)
-        {
-            await Shell.Current.DisplayAlert("Error", $"Failed to check for updates: {ex.Message}", "OK");
         }
     }
 

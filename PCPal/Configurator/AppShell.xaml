@@ -30,7 +30,7 @@
                                    SelectionChanged="OnNavMenuSelectionChanged">
                         <CollectionView.ItemsSource>
                             <x:Array Type="{x:Type x:String}">
-                                <x:String>1602 LCD Display</x:String>
+                                <x:String >1602 LCD Display</x:String>
                                 <x:String>4.6" TFT Display</x:String>
                                 <x:String>OLED Display</x:String>
                                 <x:String>Settings</x:String>
@@ -45,7 +45,7 @@
                                     <HorizontalStackLayout Spacing="10">
                                         <Label Text="{Binding .}" 
                                                VerticalOptions="Center"
-                                               TextColor="{Binding Source={x:Reference NavMenu}, Path=SelectedItem, Converter={StaticResource StringMatchTextConverter}, ConverterParameter={Binding .}}" />
+                                               TextColor="#333333" />
                                     </HorizontalStackLayout>
                                 </Border>
                             </DataTemplate>

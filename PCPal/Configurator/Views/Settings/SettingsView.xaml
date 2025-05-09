@@ -233,10 +233,6 @@
                             <Label Text="License: MIT" />
                         </VerticalStackLayout>
 
-                        <Button Text="Check for Updates" 
-                                Command="{Binding CheckForUpdatesCommand}"
-                                HorizontalOptions="Start"
-                                Margin="0,10,0,0" />
                     </VerticalStackLayout>
                 </Border>
 

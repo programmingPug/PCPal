@@ -657,6 +657,10 @@ public class OledConfigViewModel : BaseViewModel
         IsMarkupEditorSelected = tab == "markup";
         IsTemplatesSelected = tab == "templates";
 
+        OnPropertyChanged(nameof(IsVisualEditorSelected));
+        OnPropertyChanged(nameof(IsMarkupEditorSelected));
+        OnPropertyChanged(nameof(IsTemplatesSelected));
+
         switch (tab)
         {
             case "visual":

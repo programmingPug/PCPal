@@ -23,14 +23,14 @@
         <!-- Tabs -->
         <HorizontalStackLayout Grid.Row="1" Spacing="0">
             <Border BackgroundColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource Primary}}"
-                    StrokeShape="RoundRectangle 4,4,0,0"
-                    StrokeThickness="1"
-                    Stroke="{StaticResource BorderColor}"
-                    Padding="20,10"
-                    WidthRequest="160">
+        StrokeShape="RoundRectangle 4,4,0,0"
+        StrokeThickness="1"
+        Stroke="{StaticResource BorderColor}"
+        Padding="20,10"
+        WidthRequest="160">
                 <Label Text="Visual Editor" 
-                       TextColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter=White}"
-                       HorizontalOptions="Center" />
+           TextColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToTextColorConverter}, ConverterParameter=White}"
+           HorizontalOptions="Center" />
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SwitchToVisualEditorCommand}" />
                 </Border.GestureRecognizers>
@@ -43,7 +43,7 @@
                     Padding="20,10"
                     WidthRequest="160">
                 <Label Text="Markup Editor" 
-                       TextColor="{Binding IsMarkupEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter=White}"
+                       TextColor="{Binding IsMarkupEditorSelected, Converter={StaticResource BoolToTextColorConverter}, ConverterParameter=White}"
                        HorizontalOptions="Center" />
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SwitchToMarkupEditorCommand}" />
@@ -57,7 +57,7 @@
                     Padding="20,10"
                     WidthRequest="160">
                 <Label Text="Templates" 
-                       TextColor="{Binding IsTemplatesSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter=White}"
+                       TextColor="{Binding IsTemplatesSelected, Converter={StaticResource BoolToTextColorConverter}, ConverterParameter=White}"
                        HorizontalOptions="Center" />
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Command="{Binding SwitchToTemplatesCommand}" />
