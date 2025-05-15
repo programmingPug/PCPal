@@ -34,13 +34,12 @@
                                            Margin="0,0,0,10" />
 
                                     <Grid Grid.Row="1" BackgroundColor="Black" HeightRequest="100">
-                                        <controls:OledPreviewCanvas Elements="{Binding PreviewElements}"
-                                                              Width="256"
-                                                              Height="64"
+                                        <controls:OledDisplayCanvas Elements="{Binding PreviewElements}"
+                                                              CanvasWidth="256"
+                                                              CanvasHeight="64"
                                                               HorizontalOptions="Center"
                                                               VerticalOptions="Center"
-                                                              Scale="1.5"
-                                                              IsEditable="False" />
+                                                              Scale="1.5" />
                                     </Grid>
 
                                     <Label Grid.Row="2" 

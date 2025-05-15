@@ -36,7 +36,6 @@ public static class MauiProgram
         // OLED
         builder.Services.AddTransient<OledConfigView>();
         builder.Services.AddTransient<OledConfigViewModel>();
-        builder.Services.AddTransient<OledVisualEditorView>();
         builder.Services.AddTransient<OledMarkupEditorView>();
         builder.Services.AddTransient<OledTemplatesView>();
 

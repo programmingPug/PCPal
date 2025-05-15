@@ -14,7 +14,7 @@
                    FontSize="22" 
                    FontAttributes="Bold" 
                    TextColor="{StaticResource TextPrimary}" />
-            <Label Text="Design your custom OLED display layout with the visual editor or markup"
+            <Label Text="Design your custom OLED display layout with markup"
                    FontSize="14"
                    TextColor="{StaticResource TextSecondary}" />
             <BoxView HeightRequest="1" Color="{StaticResource BorderColor}" Margin="0,10,0,0" />
@@ -22,20 +22,6 @@
 
         <!-- Tabs -->
         <HorizontalStackLayout Grid.Row="1" Spacing="0">
-            <Border BackgroundColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource Primary}}"
-        StrokeShape="RoundRectangle 4,4,0,0"
-        StrokeThickness="1"
-        Stroke="{StaticResource BorderColor}"
-        Padding="20,10"
-        WidthRequest="160">
-                <Label Text="Visual Editor" 
-           TextColor="{Binding IsVisualEditorSelected, Converter={StaticResource BoolToTextColorConverter}, ConverterParameter=White}"
-           HorizontalOptions="Center" />
-                <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding SwitchToVisualEditorCommand}" />
-                </Border.GestureRecognizers>
-            </Border>
-
             <Border BackgroundColor="{Binding IsMarkupEditorSelected, Converter={StaticResource BoolToColorConverter}, ConverterParameter={StaticResource Primary}}"
                     StrokeShape="RoundRectangle 4,4,0,0"
                     StrokeThickness="1"

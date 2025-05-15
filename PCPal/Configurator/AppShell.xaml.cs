@@ -5,7 +5,6 @@ using PCPal.Configurator.Views.LCD;
 using PCPal.Configurator.Views.OLED;
 using PCPal.Configurator.Views.TFT;
 using System.ComponentModel;
-using PCPal.Configurator.Models;
 using System.Collections.ObjectModel;
 
 namespace PCPal.Configurator;

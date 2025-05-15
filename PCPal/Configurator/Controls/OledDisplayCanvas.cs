@@ -5,33 +5,34 @@ using System.Collections.Specialized;
 
 namespace PCPal.Configurator.Controls;
 
-public class OledPreviewCanvas : GraphicsView
+// This is a new control that only handles display functionality - no editing
+public class OledDisplayCanvas : GraphicsView
 {
     // Bindable properties for the control
     public static readonly BindableProperty ElementsProperty = BindableProperty.Create(
         nameof(Elements),
         typeof(IList<PreviewElement>),
-        typeof(OledPreviewCanvas),
+        typeof(OledDisplayCanvas),
         null,
         propertyChanged: OnElementsChanged);
 
     public static readonly BindableProperty ScaleProperty = BindableProperty.Create(
         nameof(Scale),
         typeof(float),
-        typeof(OledPreviewCanvas),
+        typeof(OledDisplayCanvas),
         1.0f,
         propertyChanged: OnScaleChanged);
 
-    public static readonly BindableProperty WidthProperty = BindableProperty.Create(
-        nameof(Width),
+    public static readonly BindableProperty CanvasWidthProperty = BindableProperty.Create(
+        nameof(CanvasWidth),
         typeof(int),
-        typeof(OledPreviewCanvas),
+        typeof(OledDisplayCanvas),
         256);
 
-    public static readonly BindableProperty HeightProperty = BindableProperty.Create(
-        nameof(Height),
+    public static readonly BindableProperty CanvasHeightProperty = BindableProperty.Create(
+        nameof(CanvasHeight),
         typeof(int),
-        typeof(OledPreviewCanvas),
+        typeof(OledDisplayCanvas),
         64);
 
     // Property accessors
@@ -47,23 +48,23 @@ public class OledPreviewCanvas : GraphicsView
         set => SetValue(ScaleProperty, value);
     }
 
-    public new int Width
+    public int CanvasWidth
     {
-        get => (int)GetValue(WidthProperty);
-        set => SetValue(WidthProperty, value);
+        get => (int)GetValue(CanvasWidthProperty);
+        set => SetValue(CanvasWidthProperty, value);
     }
 
-    public new int Height
+    public int CanvasHeight
     {
-        get => (int)GetValue(HeightProperty);
-        set => SetValue(HeightProperty, value);
+        get => (int)GetValue(CanvasHeightProperty);
+        set => SetValue(CanvasHeightProperty, value);
     }
 
     // Constructor
-    public OledPreviewCanvas()
+    public OledDisplayCanvas()
     {
         // Set default drawing
-        Drawable = new OledCanvasDrawable(this);
+        Drawable = new OledDisplayDrawable(this);
 
         // Set up initial size
         WidthRequest = 256 * Scale;
@@ -73,7 +74,7 @@ public class OledPreviewCanvas : GraphicsView
     // Element collection change handler
     private static void OnElementsChanged(BindableObject bindable, object oldValue, object newValue)
     {
-        var canvas = (OledPreviewCanvas)bindable;
+        var canvas = (OledDisplayCanvas)bindable;
 
         // If old value is INotifyCollectionChanged, unsubscribe
         if (oldValue is INotifyCollectionChanged oldCollection)
@@ -94,12 +95,12 @@ public class OledPreviewCanvas : GraphicsView
     // Scale change handler
     private static void OnScaleChanged(BindableObject bindable, object oldValue, object newValue)
     {
-        var canvas = (OledPreviewCanvas)bindable;
+        var canvas = (OledDisplayCanvas)bindable;
         float scale = (float)newValue;
 
         // Update the size of the canvas based on the scale
-        canvas.WidthRequest = canvas.Width * scale;
-        canvas.HeightRequest = canvas.Height * scale;
+        canvas.WidthRequest = canvas.CanvasWidth * scale;
+        canvas.HeightRequest = canvas.CanvasHeight * scale;
 
         canvas.Invalidate();
     }
@@ -112,11 +113,11 @@ public class OledPreviewCanvas : GraphicsView
 }
 
 // The drawable that renders the OLED canvas
-public class OledCanvasDrawable : IDrawable
+public class OledDisplayDrawable : IDrawable
 {
-    private readonly OledPreviewCanvas _canvas;
+    private readonly OledDisplayCanvas _canvas;
 
-    public OledCanvasDrawable(OledPreviewCanvas canvas)
+    public OledDisplayDrawable(OledDisplayCanvas canvas)
     {
         _canvas = canvas;
     }

@@ -34,13 +34,12 @@
                        FontAttributes="Bold" />
 
                 <Grid Grid.Row="1" BackgroundColor="Black" Padding="10">
-                    <controls:OledPreviewCanvas Elements="{Binding PreviewElements}"
-                                           Width="256"
-                                           Height="64"
-                                           HorizontalOptions="Center"
-                                           VerticalOptions="Center"
-                                           Scale="2"
-                                           IsEditable="False" />
+                    <controls:OledDisplayCanvas Elements="{Binding PreviewElements}"
+                                            CanvasWidth="256"
+                                            CanvasHeight="64"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            Scale="2" />
                 </Grid>
             </Grid>
         </Border>

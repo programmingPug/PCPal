@@ -5,7 +5,6 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
-//using Javax.Xml.Transform;
 
 namespace PCPal.Configurator.ViewModels;
 
@@ -16,7 +15,6 @@ public class OledConfigViewModel : BaseViewModel
     private readonly ISerialPortService _serialPortService;
 
     // Tab selection
-    private bool _isVisualEditorSelected;
     private bool _isMarkupEditorSelected;
     private bool _isTemplatesSelected;
     private ContentView _currentView;
@@ -24,14 +22,6 @@ public class OledConfigViewModel : BaseViewModel
     // Markup editor data
     private string _oledMarkup;
     private List<PreviewElement> _previewElements;
-
-    // Visual editor data
-    private ObservableCollection<OledElement> _oledElements;
-    private OledElement _selectedElement;
-    private bool _showGridLines;
-    private float _zoomLevel;
-    private string _currentSensorFilter;
-    private ObservableCollection<SensorItem> _filteredSensors;
 
     // Common properties
     private ObservableCollection<SensorItem> _availableSensors;
@@ -43,7 +33,6 @@ public class OledConfigViewModel : BaseViewModel
     private string _newTemplateName;
 
     // Views
-    private readonly OledVisualEditorView _visualEditorView;
     private readonly OledMarkupEditorView _markupEditorView;
     private readonly OledTemplatesView _templatesView;
 
@@ -54,12 +43,6 @@ public class OledConfigViewModel : BaseViewModel
     #region Properties
 
     // Tab selection properties
-    public bool IsVisualEditorSelected
-    {
-        get => _isVisualEditorSelected;
-        set => SetProperty(ref _isVisualEditorSelected, value);
-    }
-
     public bool IsMarkupEditorSelected
     {
         get => _isMarkupEditorSelected;
@@ -89,80 +72,6 @@ public class OledConfigViewModel : BaseViewModel
     {
         get => _previewElements;
         set => SetProperty(ref _previewElements, value);
-    }
-
-    // Visual editor properties
-    public ObservableCollection<OledElement> OledElements
-    {
-        get => _oledElements;
-        set => SetProperty(ref _oledElements, value);
-    }
-
-    public OledElement SelectedElement
-    {
-        get => _selectedElement;
-        set
-        {
-            if (SetProperty(ref _selectedElement, value))
-            {
-                OnPropertyChanged(nameof(HasSelectedElement));
-                OnPropertyChanged(nameof(IsTextElementSelected));
-                OnPropertyChanged(nameof(IsBarElementSelected));
-                OnPropertyChanged(nameof(IsRectangleElementSelected));
-                OnPropertyChanged(nameof(IsLineElementSelected));
-                OnPropertyChanged(nameof(IsIconElementSelected));
-
-                // Update element properties
-                OnPropertyChanged(nameof(SelectedElementX));
-                OnPropertyChanged(nameof(SelectedElementY));
-                OnPropertyChanged(nameof(SelectedElementText));
-                OnPropertyChanged(nameof(SelectedElementSize));
-                OnPropertyChanged(nameof(SelectedElementWidth));
-                OnPropertyChanged(nameof(SelectedElementHeight));
-                OnPropertyChanged(nameof(SelectedElementValue));
-                OnPropertyChanged(nameof(SelectedElementX2));
-                OnPropertyChanged(nameof(SelectedElementY2));
-                OnPropertyChanged(nameof(SelectedElementIconName));
-                OnPropertyChanged(nameof(SelectedElementSensor));
-            }
-        }
-    }
-
-    public bool HasSelectedElement => SelectedElement != null;
-    public bool IsTextElementSelected => SelectedElement?.Type == "text";
-    public bool IsBarElementSelected => SelectedElement?.Type == "bar";
-    public bool IsRectangleElementSelected => SelectedElement?.Type == "rect" || SelectedElement?.Type == "box";
-    public bool IsLineElementSelected => SelectedElement?.Type == "line";
-    public bool IsIconElementSelected => SelectedElement?.Type == "icon";
-
-    public bool ShowGridLines
-    {
-        get => _showGridLines;
-        set => SetProperty(ref _showGridLines, value);
-    }
-
-    public float ZoomLevel
-    {
-        get => _zoomLevel;
-        set => SetProperty(ref _zoomLevel, value);
-    }
-
-    public string CurrentSensorFilter
-    {
-        get => _currentSensorFilter;
-        set
-        {
-            if (SetProperty(ref _currentSensorFilter, value))
-            {
-                ApplySensorFilter();
-            }
-        }
-    }
-
-    public ObservableCollection<SensorItem> FilteredSensors
-    {
-        get => _filteredSensors;
-        set => SetProperty(ref _filteredSensors, value);
     }
 
     // Common properties
@@ -205,177 +114,11 @@ public class OledConfigViewModel : BaseViewModel
         set => SetProperty(ref _newTemplateName, value);
     }
 
-    // Selected element properties
-    public string SelectedElementX
-    {
-        get => SelectedElement?.X.ToString() ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null && int.TryParse(value, out int x))
-            {
-                SelectedElement.X = x;
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementX));
-            }
-        }
-    }
-
-    public string SelectedElementY
-    {
-        get => SelectedElement?.Y.ToString() ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null && int.TryParse(value, out int y))
-            {
-                SelectedElement.Y = y;
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementY));
-            }
-        }
-    }
-
-    public string SelectedElementText
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("content") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null)
-            {
-                SelectedElement.Properties["content"] = value;
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementText));
-            }
-        }
-    }
-
-    public string SelectedElementSize
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("size") ?? "1";
-        set
-        {
-            if (SelectedElement != null)
-            {
-                SelectedElement.Properties["size"] = value;
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementSize));
-            }
-        }
-    }
-
-    public string SelectedElementWidth
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("width") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null && int.TryParse(value, out int width))
-            {
-                SelectedElement.Properties["width"] = width.ToString();
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementWidth));
-            }
-        }
-    }
-
-    public string SelectedElementHeight
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("height") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null && int.TryParse(value, out int height))
-            {
-                SelectedElement.Properties["height"] = height.ToString();
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementHeight));
-            }
-        }
-    }
-
-    public float SelectedElementValue
-    {
-        get
-        {
-            if (SelectedElement != null && float.TryParse(SelectedElement.Properties.GetValueOrDefault("value"), out float value))
-            {
-                return value;
-            }
-            return 0;
-        }
-        set
-        {
-            if (SelectedElement != null)
-            {
-                SelectedElement.Properties["value"] = value.ToString("F0");
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementValue));
-            }
-        }
-    }
-
-    public string SelectedElementX2
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("x2") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null && int.TryParse(value, out int x2))
-            {
-                SelectedElement.Properties["x2"] = x2.ToString();
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementX2));
-            }
-        }
-    }
-
-    public string SelectedElementY2
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("y2") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null && int.TryParse(value, out int y2))
-            {
-                SelectedElement.Properties["y2"] = y2.ToString();
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementY2));
-            }
-        }
-    }
-
-    public string SelectedElementIconName
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("name") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null)
-            {
-                SelectedElement.Properties["name"] = value;
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementIconName));
-            }
-        }
-    }
-
-    public string SelectedElementSensor
-    {
-        get => SelectedElement?.Properties.GetValueOrDefault("sensor") ?? string.Empty;
-        set
-        {
-            if (SelectedElement != null)
-            {
-                SelectedElement.Properties["sensor"] = value;
-                UpdateMarkupFromElements();
-                OnPropertyChanged(nameof(SelectedElementSensor));
-            }
-        }
-    }
-
-    // Lists for populating pickers
-    public List<string> FontSizes => new List<string> { "1", "2", "3" };
-
     #endregion
 
     #region Commands
 
     // Tab selection commands
-    public ICommand SwitchToVisualEditorCommand { get; }
     public ICommand SwitchToMarkupEditorCommand { get; }
     public ICommand SwitchToTemplatesCommand { get; }
 
@@ -383,15 +126,6 @@ public class OledConfigViewModel : BaseViewModel
     public ICommand SaveConfigCommand { get; }
     public ICommand PreviewCommand { get; }
     public ICommand ResetCommand { get; }
-
-    // Visual editor commands
-    public ICommand AddElementCommand { get; }
-    public ICommand DeleteElementCommand { get; }
-    public ICommand ZoomInCommand { get; }
-    public ICommand ZoomOutCommand { get; }
-    public ICommand FilterSensorsCommand { get; }
-    public ICommand AddSensorToDisplayCommand { get; }
-    public ICommand BrowseIconsCommand { get; }
 
     // Markup editor commands
     public ICommand InsertMarkupCommand { get; }
@@ -416,10 +150,8 @@ public class OledConfigViewModel : BaseViewModel
         _serialPortService = serialPortService ?? throw new ArgumentNullException(nameof(serialPortService));
 
         // Initialize collections
-        _oledElements = new ObservableCollection<OledElement>();
         _previewElements = new List<PreviewElement>();
         _availableSensors = new ObservableCollection<SensorItem>();
-        _filteredSensors = new ObservableCollection<SensorItem>();
         _templateList = new ObservableCollection<Template>();
         _customTemplates = new ObservableCollection<Template>();
 
@@ -427,19 +159,14 @@ public class OledConfigViewModel : BaseViewModel
         _sensorUpdateCts = new CancellationTokenSource();
 
         // Create views
-        _visualEditorView = new OledVisualEditorView { BindingContext = this };
         _markupEditorView = new OledMarkupEditorView { BindingContext = this };
         _templatesView = new OledTemplatesView { BindingContext = this };
 
         // Default values
-        _isVisualEditorSelected = true;
-        _currentView = _visualEditorView;
-        _showGridLines = false;
-        _zoomLevel = 3.0f;
-        _currentSensorFilter = "All";
+        _isMarkupEditorSelected = true;
+        _currentView = _markupEditorView;
 
         // Tab selection commands
-        SwitchToVisualEditorCommand = new Command(() => SwitchTab("visual"));
         SwitchToMarkupEditorCommand = new Command(() => SwitchTab("markup"));
         SwitchToTemplatesCommand = new Command(() => SwitchTab("templates"));
 
@@ -447,15 +174,6 @@ public class OledConfigViewModel : BaseViewModel
         SaveConfigCommand = new Command(async () => await SaveConfigAsync());
         PreviewCommand = new Command(async () => await PreviewOnDeviceAsync());
         ResetCommand = new Command(async () => await ResetLayoutAsync());
-
-        // Visual editor commands
-        AddElementCommand = new Command<string>(type => AddElement(type));
-        DeleteElementCommand = new Command(DeleteSelectedElement);
-        ZoomInCommand = new Command(ZoomIn);
-        ZoomOutCommand = new Command(ZoomOut);
-        FilterSensorsCommand = new Command<string>(filter => CurrentSensorFilter = filter);
-        AddSensorToDisplayCommand = new Command<string>(sensorId => AddSensorToDisplay(sensorId));
-        BrowseIconsCommand = new Command(async () => await BrowseIconsAsync());
 
         // Markup editor commands
         InsertMarkupCommand = new Command<string>(type => InsertMarkupTemplate(type));
@@ -507,8 +225,8 @@ public class OledConfigViewModel : BaseViewModel
             // Load templates
             await LoadTemplatesAsync();
 
-            // Switch to visual editor by default
-            SwitchTab("visual");
+            // Switch to markup editor by default
+            SwitchTab("markup");
 
             // Start sensor updates
             _sensorUpdateTimer.Change(0, 2000); // Update every 2 seconds
@@ -544,7 +262,6 @@ public class OledConfigViewModel : BaseViewModel
             // Update on main thread to ensure thread safety
             await MainThread.InvokeOnMainThreadAsync(() => {
                 AvailableSensors = new ObservableCollection<SensorItem>(sensors);
-                FilteredSensors = new ObservableCollection<SensorItem>(sensors);
             });
         }
         catch (Exception ex)
@@ -563,7 +280,6 @@ public class OledConfigViewModel : BaseViewModel
             if (!string.IsNullOrEmpty(config.OledMarkup))
             {
                 OledMarkup = config.OledMarkup;
-                await ParseMarkupToElementsAsync(OledMarkup);
                 UpdatePreviewFromMarkup();
             }
             else
@@ -653,19 +369,14 @@ public class OledConfigViewModel : BaseViewModel
 
     private void SwitchTab(string tab)
     {
-        IsVisualEditorSelected = tab == "visual";
         IsMarkupEditorSelected = tab == "markup";
         IsTemplatesSelected = tab == "templates";
 
-        OnPropertyChanged(nameof(IsVisualEditorSelected));
         OnPropertyChanged(nameof(IsMarkupEditorSelected));
         OnPropertyChanged(nameof(IsTemplatesSelected));
 
         switch (tab)
         {
-            case "visual":
-                CurrentView = _visualEditorView;
-                break;
             case "markup":
                 CurrentView = _markupEditorView;
                 break;
@@ -784,26 +495,6 @@ public class OledConfigViewModel : BaseViewModel
         }
     }
 
-    public void UpdateMarkupFromElements()
-    {
-        try
-        {
-            var sb = new System.Text.StringBuilder();
-
-            foreach (var element in OledElements)
-            {
-                sb.AppendLine(element.ToMarkup());
-            }
-
-            OledMarkup = sb.ToString();
-            UpdatePreviewFromMarkup();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error updating markup from elements: {ex.Message}");
-        }
-    }
-
     private async Task UpdateSensorDataAsync()
     {
         try
@@ -826,317 +517,6 @@ public class OledConfigViewModel : BaseViewModel
         {
             // Log error but don't display to user since this happens in background
             Debug.WriteLine($"Error updating sensor data: {ex.Message}");
-        }
-    }
-
-    private void ApplySensorFilter()
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(CurrentSensorFilter) || CurrentSensorFilter == "All")
-            {
-                MainThread.BeginInvokeOnMainThread(() => {
-                    FilteredSensors = new ObservableCollection<SensorItem>(AvailableSensors);
-                });
-                return;
-            }
-
-            var filtered = AvailableSensors.Where(s =>
-                s.HardwareName.Contains(CurrentSensorFilter, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            MainThread.BeginInvokeOnMainThread(() => {
-                FilteredSensors = new ObservableCollection<SensorItem>(filtered);
-            });
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error applying sensor filter: {ex.Message}");
-        }
-    }
-
-    private void AddElement(string type)
-    {
-        try
-        {
-            var element = new OledElement
-            {
-                Type = type,
-                X = 10,
-                Y = 10
-            };
-
-            // Set default properties based on type
-            switch (type)
-            {
-                case "text":
-                    element.Properties["size"] = "1";
-                    element.Properties["content"] = "New Text";
-                    break;
-
-                case "bar":
-                    element.Properties["width"] = "100";
-                    element.Properties["height"] = "8";
-                    element.Properties["value"] = "50";
-                    break;
-
-                case "rect":
-                case "box":
-                    element.Properties["width"] = "20";
-                    element.Properties["height"] = "10";
-                    break;
-
-                case "line":
-                    element.Properties["x2"] = "30";
-                    element.Properties["y2"] = "30";
-                    break;
-
-                case "icon":
-                    element.Properties["name"] = "cpu";
-                    break;
-            }
-
-            OledElements.Add(element);
-            SelectedElement = element;
-
-            // Update markup
-            UpdateMarkupFromElements();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error adding element: {ex.Message}");
-        }
-    }
-
-    private void DeleteSelectedElement()
-    {
-        try
-        {
-            if (SelectedElement != null)
-            {
-                OledElements.Remove(SelectedElement);
-                SelectedElement = null;
-
-                // Update markup
-                UpdateMarkupFromElements();
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error deleting element: {ex.Message}");
-        }
-    }
-
-    private async Task ParseMarkupToElementsAsync(string markup)
-    {
-        if (string.IsNullOrEmpty(markup))
-        {
-            await MainThread.InvokeOnMainThreadAsync(() => {
-                OledElements.Clear();
-            });
-            return;
-        }
-
-        var elements = new List<OledElement>();
-
-        try
-        {
-            // Parse text elements
-            foreach (Match match in Regex.Matches(markup, @"<text\s+x=(\d+)\s+y=(\d+)(?:\s+size=(\d+))?>([^<]*)</text>"))
-            {
-                var element = new OledElement { Type = "text" };
-                element.X = int.Parse(match.Groups[1].Value);
-                element.Y = int.Parse(match.Groups[2].Value);
-
-                if (match.Groups[3].Success)
-                {
-                    element.Properties["size"] = match.Groups[3].Value;
-                }
-                else
-                {
-                    element.Properties["size"] = "1";
-                }
-
-                element.Properties["content"] = match.Groups[4].Value;
-                elements.Add(element);
-            }
-
-            // Parse bar elements
-            foreach (Match match in Regex.Matches(markup, @"<bar\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s+val=(\d+|\{[^}]+\})\s*/>"))
-            {
-                var element = new OledElement { Type = "bar" };
-                element.X = int.Parse(match.Groups[1].Value);
-                element.Y = int.Parse(match.Groups[2].Value);
-                element.Properties["width"] = match.Groups[3].Value;
-                element.Properties["height"] = match.Groups[4].Value;
-                element.Properties["value"] = match.Groups[5].Value;
-                elements.Add(element);
-            }
-
-            // Parse rect elements
-            foreach (Match match in Regex.Matches(markup, @"<rect\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s*/>"))
-            {
-                var element = new OledElement { Type = "rect" };
-                element.X = int.Parse(match.Groups[1].Value);
-                element.Y = int.Parse(match.Groups[2].Value);
-                element.Properties["width"] = match.Groups[3].Value;
-                element.Properties["height"] = match.Groups[4].Value;
-                elements.Add(element);
-            }
-
-            // Parse box elements
-            foreach (Match match in Regex.Matches(markup, @"<box\s+x=(\d+)\s+y=(\d+)\s+w=(\d+)\s+h=(\d+)\s*/>"))
-            {
-                var element = new OledElement { Type = "box" };
-                element.X = int.Parse(match.Groups[1].Value);
-                element.Y = int.Parse(match.Groups[2].Value);
-                element.Properties["width"] = match.Groups[3].Value;
-                element.Properties["height"] = match.Groups[4].Value;
-                elements.Add(element);
-            }
-
-            // Parse line elements
-            foreach (Match match in Regex.Matches(markup, @"<line\s+x1=(\d+)\s+y1=(\d+)\s+x2=(\d+)\s+y2=(\d+)\s*/>"))
-            {
-                var element = new OledElement { Type = "line" };
-                element.X = int.Parse(match.Groups[1].Value);
-                element.Y = int.Parse(match.Groups[2].Value);
-                element.Properties["x2"] = match.Groups[3].Value;
-                element.Properties["y2"] = match.Groups[4].Value;
-                elements.Add(element);
-            }
-
-            // Parse icon elements
-            foreach (Match match in Regex.Matches(markup, @"<icon\s+x=(\d+)\s+y=(\d+)\s+name=([a-zA-Z0-9_]+)\s*/>"))
-            {
-                var element = new OledElement { Type = "icon" };
-                element.X = int.Parse(match.Groups[1].Value);
-                element.Y = int.Parse(match.Groups[2].Value);
-                element.Properties["name"] = match.Groups[3].Value;
-                elements.Add(element);
-            }
-
-            // Update the collection on the UI thread
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                OledElements.Clear();
-                foreach (var element in elements)
-                {
-                    OledElements.Add(element);
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error parsing markup: {ex.Message}");
-        }
-    }
-
-    private async Task<List<PreviewElement>> ParseMarkupToPreviewElements(string markup)
-    {
-        try
-        {
-            var markupParser = new MarkupParser(_sensorService.GetAllSensorValues());
-            return markupParser.ParseMarkup(markup);
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error parsing markup for preview: {ex.Message}");
-            return new List<PreviewElement>();
-        }
-    }
-
-    private void ZoomIn()
-    {
-        if (ZoomLevel < 5.0f)
-        {
-            ZoomLevel += 0.5f;
-        }
-    }
-
-    private void ZoomOut()
-    {
-        if (ZoomLevel > 1.0f)
-        {
-            ZoomLevel -= 0.5f;
-        }
-    }
-
-    private void AddSensorToDisplay(string sensorId)
-    {
-        try
-        {
-            // Find the sensor
-            var sensor = AvailableSensors.FirstOrDefault(s => s.Id == sensorId);
-
-            if (sensor == null)
-            {
-                return;
-            }
-
-            // Determine appropriate Y position (avoid overlap)
-            int yPos = 15;
-            if (OledElements.Any())
-            {
-                yPos = OledElements.Max(e => e.Y) + 15;
-            }
-
-            // Create text element with the sensor variable
-            var element = new OledElement
-            {
-                Type = "text",
-                X = 10,
-                Y = yPos
-            };
-
-            element.Properties["size"] = "1";
-            element.Properties["content"] = $"{sensor.Name}: {{{sensorId}}} {sensor.Unit}";
-
-            OledElements.Add(element);
-            SelectedElement = element;
-
-            // Create a progress bar if it's a load/percentage sensor
-            if (sensor.SensorType == LibreHardwareMonitor.Hardware.SensorType.Load ||
-                sensor.SensorType == LibreHardwareMonitor.Hardware.SensorType.Level)
-            {
-                var barElement = new OledElement
-                {
-                    Type = "bar",
-                    X = 10,
-                    Y = yPos + 5
-                };
-
-                barElement.Properties["width"] = "100";
-                barElement.Properties["height"] = "8";
-                barElement.Properties["value"] = $"{{{sensorId}}}";
-
-                OledElements.Add(barElement);
-            }
-
-            // Update markup
-            UpdateMarkupFromElements();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error adding sensor to display: {ex.Message}");
-        }
-    }
-
-    private async Task BrowseIconsAsync()
-    {
-        try
-        {
-            // A mock implementation - in a real app, you'd implement a proper icon browser
-            var icons = new string[] { "cpu", "gpu", "ram", "disk", "network", "fan" };
-            string result = await Shell.Current.DisplayActionSheet("Select an icon", "Cancel", null, icons);
-
-            if (!string.IsNullOrEmpty(result) && result != "Cancel")
-            {
-                SelectedElementIconName = result;
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error browsing icons: {ex.Message}");
         }
     }
 
@@ -1216,12 +596,25 @@ public class OledConfigViewModel : BaseViewModel
         try
         {
             OledMarkup = await _sensorService.CreateExampleMarkupAsync();
-            await ParseMarkupToElementsAsync(OledMarkup);
             UpdatePreviewFromMarkup();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error loading example markup: {ex.Message}");
+        }
+    }
+
+    private async Task<List<PreviewElement>> ParseMarkupToPreviewElements(string markup)
+    {
+        try
+        {
+            var markupParser = new MarkupParser(_sensorService.GetAllSensorValues());
+            return markupParser.ParseMarkup(markup);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error parsing markup for preview: {ex.Message}");
+            return new List<PreviewElement>();
         }
     }
 
@@ -1324,7 +717,6 @@ public class OledConfigViewModel : BaseViewModel
             if (confirm)
             {
                 OledMarkup = SelectedTemplate.Markup;
-                await ParseMarkupToElementsAsync(OledMarkup);
                 UpdatePreviewFromMarkup();
                 SwitchTab("markup");
             }
@@ -1424,7 +816,6 @@ public class OledConfigViewModel : BaseViewModel
             if (confirm)
             {
                 OledMarkup = template.Markup;
-                await ParseMarkupToElementsAsync(OledMarkup);
                 UpdatePreviewFromMarkup();
                 SwitchTab("markup");
             }
@@ -1472,9 +863,15 @@ public class OledConfigViewModel : BaseViewModel
 
 public class Template
 {
+    public Template()
+    {
+        // Initialize the PreviewElements collection
+        PreviewElements = new List<PreviewElement>();
+    }
+
     public string Name { get; set; }
     public string Description { get; set; }
     public string Markup { get; set; }
-    public List<PreviewElement> PreviewElements { get; set; } = new List<PreviewElement>();
+    public List<PreviewElement> PreviewElements { get; set; }
     public bool IsSelected { get; set; }
 }
